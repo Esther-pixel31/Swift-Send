@@ -16,29 +16,51 @@ CASHIE - Project Setup Instructions
 
 1. Clone the repo and navigate to the backend folder:
    ```bash 
-   git clone https://github.com/your-org/cashie.git
-   cd cashie/Backend
+   git clone git@github.com:Esther-pixel31/Swift-Send.git
+   cd Swift_send
+   cd Backend
    ```
 
 2. Create and activate a virtual environment:
-    
+    ```bash
    python3 -m venv venv
    source venv/bin/activate
+    ```
 
 3. Install Python dependencies:
+    ```bash
    pip install -r requirements.txt
+    ```
+4. Create a new PostgreSQL user with superuser privileges
+    ```bash
+    sudo -u postgres createuser yourusername --superuser
+    ```
+    Replace yourusername with your actual Linux/WSL username.
 
-4. Start PostgreSQL manually:
+5.  Create a new local database
+    ```bash
+    createdb -U yourusername cashie_dev
+    ```
+6.  Setup Environment Variables
+
+    Each collaborator should create a `.env` file in the `Backend/` folder by copying the provided `.env.example`:
+    ```bash
+    cp .env.example .env
+    DB_NAME=cashie_dev
+    DB_USER=yourusername
+    DB_PASSWORD=yourpassword
+    DB_HOST=localhost
+    DB_PORT=5432
+    ```
+7. Start PostgreSQL manually:
+    ```bash
    sudo service postgresql start
+    ```
 
-5. Create and configure the .env file:
-   cp .env.example .env
-   # Update database credentials inside .env
-
-6. Run database migrations (if any):
+8. Run database migrations (if any):
    flask db upgrade
 
-7. Start the Flask development server:
+9. Start the Flask development server:
    flask run
 
 ----------------------------------------
@@ -65,5 +87,5 @@ CASHIE - Project Setup Instructions
 
 - This project uses:
   - Flask + PostgreSQL (backend)
-  - React + Vite + TailwindCSS (frontend)
+  - React + Vite + TailwindCSS + Redux (frontend)
 
