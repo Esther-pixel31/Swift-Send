@@ -4,7 +4,7 @@ from datetime import datetime
 from .base import Base, SerializationMixin
 
 class KYC(Base, SerializationMixin):
-    __tablename__ = 'kyc_doc'
+    __tablename__ = 'kyc_docs'
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
@@ -15,3 +15,4 @@ class KYC(Base, SerializationMixin):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="kyc_docs")
+
