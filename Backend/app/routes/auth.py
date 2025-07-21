@@ -1,4 +1,3 @@
-# routes/auth.py
 from flask import Blueprint, request, jsonify
 from sqlalchemy.exc import IntegrityError
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
@@ -23,7 +22,6 @@ def register():
 
     session = SessionLocal()
     try:
-        # Check if email already exists
         if session.query(User).filter_by(email=email).first():
             return jsonify({"msg": "Email already exists"}), 409
 
@@ -33,7 +31,6 @@ def register():
         session.add(user)
         session.flush()
         
-        # ✅ Create wallet for user
         wallet = Wallet(user_id=user.id, balance=0.0, currency="USD")
         session.add(wallet)
         session.commit()
@@ -41,7 +38,7 @@ def register():
         return jsonify({"msg": "User and wallet created successfully"}), 201
 
     except Exception as e:
-        print("❌ REGISTER ERROR:", e)
+        print(" REGISTER ERROR:", e)
         traceback.print_exc()
         return jsonify({"msg": "Internal server error"}), 500
     finally:
@@ -91,7 +88,6 @@ def me():
 def generate_otp_route():
     user_id = get_jwt_identity()
     code = create_otp(user_id)
-    # In production you'd send this to the user's email/SMS.
     return jsonify({"msg": "OTP generated", "code": code}), 200
 
 @auth_bp.route('/verify-otp', methods=['POST'])

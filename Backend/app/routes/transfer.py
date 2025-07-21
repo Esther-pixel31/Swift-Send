@@ -1,10 +1,10 @@
-# app/routes/transfer.py
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.exc import SQLAlchemyError
 from ..models.wallet import Wallet
 from ..models.user import User
 from ..models.transaction import Transaction
+from ..utils.spending import enforce_spending_limit
 from ..db.session import SessionLocal
 
 transfer_bp = Blueprint('transfer', __name__)
@@ -38,12 +38,16 @@ def domestic_transfer():
             return jsonify({"msg": "Sender or recipient wallet not found"}), 404
         if sender_wallet.balance < amount:
             return jsonify({"msg": "Insufficient balance"}), 400
+        ok, msg = enforce_spending_limit(wallet, amount)
+        if not ok:
+            return jsonify({"msg": msg}), 403
+        elif msg:
+            warnings.append(msg) 
 
-        # Perform transfer
+
         sender_wallet.balance -= amount
         recipient_wallet.balance += amount
 
-        # Record transactions
         tx_out = Transaction(
             user_id=sender.id,
             amount=amount,
@@ -65,7 +69,8 @@ def domestic_transfer():
         return jsonify({
             "msg": "Transfer successful",
             "amount": float(amount),
-            "recipient": recipient.email
+            "recipient": recipient.email,
+            "warnings": warnings if warnings else None
         }), 200
 
     except SQLAlchemyError as e:

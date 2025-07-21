@@ -1,4 +1,3 @@
-# models/wallet.py
 from sqlalchemy import Column, Integer, ForeignKey, String, Numeric, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -13,11 +12,13 @@ class Wallet(Base, SerializationMixin):
     currency = Column(String(10), default="KES")
     spending_limit = Column(Numeric, nullable=True)
     budget = Column(Numeric, nullable=True)
+    daily_limit = Column(Numeric, default=0)
+    monthly_limit = Column(Numeric, default=0)
+    last_spending_reset = Column(DateTime, default=datetime.utcnow)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationship
     user = relationship("User", back_populates="wallets")
 
     def __repr__(self):

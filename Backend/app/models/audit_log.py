@@ -14,7 +14,6 @@ class AuditLog(Base, SerializationMixin):
     ip_address = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
     user = relationship("User", back_populates="audit_logs")
     admin = relationship("Admin", back_populates="audit_logs")
 

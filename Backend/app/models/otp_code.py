@@ -1,4 +1,3 @@
-# models/otp_code.py
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
 from datetime import datetime, timedelta
 from .base import Base, SerializationMixin

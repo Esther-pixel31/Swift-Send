@@ -18,7 +18,6 @@ class Beneficiary(Base, SerializationMixin):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
     user = relationship("User", back_populates="beneficiaries")
     transactions = relationship("Transaction", back_populates="beneficiary")
     scheduled_transfers = relationship("ScheduledTransfer", back_populates="beneficiary")

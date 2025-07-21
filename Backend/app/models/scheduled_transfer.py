@@ -13,17 +13,17 @@ class ScheduledTransfer(Base, SerializationMixin):
     amount = Column(Numeric, nullable=False)
     currency = Column(String(10), default="KES")
     
-    scheduled_at = Column(DateTime, nullable=False)  # when to execute
-    recurrence = Column(String, nullable=True)  # e.g., daily, weekly, monthly
+    scheduled_at = Column(DateTime, nullable=False) 
+    recurrence = Column(String, nullable=True)  
     is_active = Column(Boolean, default=True)
 
-    status = Column(String, default="pending")  # pending, processed, failed
+    status = Column(String, default="pending") 
     last_attempt_at = Column(DateTime, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
+    
     user = relationship("User", back_populates="scheduled_transfers")
     beneficiary = relationship("Beneficiary", back_populates="scheduled_transfers")
 

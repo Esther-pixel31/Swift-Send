@@ -9,8 +9,8 @@ class KYC(Base, SerializationMixin):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     document_type = Column(String)
-    document_number = Column(String)  # Encrypted
-    file_path = Column(String)        # Just a string stub
+    document_number = Column(String)  
+    file_path = Column(String)        
     verified = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 

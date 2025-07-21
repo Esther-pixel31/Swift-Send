@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 from ..models.kyc import KYC
 from ..db.session import SessionLocal
-from ..utils.encryption import encrypt_data  # ✅ import encryption
+from ..utils.encryption import encrypt_data  
 import os
 import uuid
 
@@ -36,7 +36,6 @@ def upload_document():
     if not document_type or not document_number:
         return jsonify({'msg': 'document_type and document_number are required'}), 400
 
-    # Secure and store file
     filename = secure_filename(file.filename)
     unique_filename = f"{uuid.uuid4().hex}_{filename}"
     filepath = os.path.join(UPLOAD_FOLDER, unique_filename)
@@ -46,7 +45,7 @@ def upload_document():
     session = SessionLocal()
 
     try:
-        encrypted_number = encrypt_data(document_number)  # ✅ encrypt before saving
+        encrypted_number = encrypt_data(document_number)  
 
         kyc_doc = KYC(
             user_id=user_id,
