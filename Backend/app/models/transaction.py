@@ -5,7 +5,7 @@ from .base import Base, SerializationMixin
 
 class Transaction(Base, SerializationMixin):
     __tablename__ = 'transactions'
-
+   
     id = Column(Integer, primary_key=True)
     
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)

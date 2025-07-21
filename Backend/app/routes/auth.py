@@ -3,9 +3,11 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy.exc import IntegrityError
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import traceback
+from ..models.wallet import Wallet
 
 from ..models.user import User
 from ..db.session import SessionLocal
+from ..utils.otp import create_otp, verify_otp
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -29,8 +31,14 @@ def register():
         user.set_password(password)
 
         session.add(user)
+        session.flush()
+        
+        # ✅ Create wallet for user
+        wallet = Wallet(user_id=user.id, balance=0.0, currency="USD")
+        session.add(wallet)
         session.commit()
-        return jsonify({"msg": "User registered successfully"}), 201
+
+        return jsonify({"msg": "User and wallet created successfully"}), 201
 
     except Exception as e:
         print("❌ REGISTER ERROR:", e)
@@ -77,3 +85,26 @@ def me():
         })
     finally:
         session.close()
+
+@auth_bp.route('/generate-otp', methods=['POST'])
+@jwt_required()
+def generate_otp_route():
+    user_id = get_jwt_identity()
+    code = create_otp(user_id)
+    # In production you'd send this to the user's email/SMS.
+    return jsonify({"msg": "OTP generated", "code": code}), 200
+
+@auth_bp.route('/verify-otp', methods=['POST'])
+@jwt_required()
+def verify_otp_route():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    code = data.get("code")
+
+    if not code:
+        return jsonify({"msg": "Missing OTP code"}), 400
+
+    if verify_otp(user_id, code):
+        return jsonify({"msg": "OTP verified successfully"}), 200
+    else:
+        return jsonify({"msg": "Invalid or expired OTP"}), 400
