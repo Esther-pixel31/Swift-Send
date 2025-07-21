@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy.exc import IntegrityError
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import traceback
+from ..models.wallet import Wallet
 
 from ..models.user import User
 from ..db.session import SessionLocal
@@ -30,8 +31,14 @@ def register():
         user.set_password(password)
 
         session.add(user)
+        session.flush()
+        
+        # ✅ Create wallet for user
+        wallet = Wallet(user_id=user.id, balance=0.0, currency="USD")
+        session.add(wallet)
         session.commit()
-        return jsonify({"msg": "User registered successfully"}), 201
+
+        return jsonify({"msg": "User and wallet created successfully"}), 201
 
     except Exception as e:
         print("❌ REGISTER ERROR:", e)
