@@ -6,6 +6,7 @@ import traceback
 
 from ..models.user import User
 from ..db.session import SessionLocal
+from ..utils.otp import create_otp, verify_otp
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -77,3 +78,26 @@ def me():
         })
     finally:
         session.close()
+
+@auth_bp.route('/generate-otp', methods=['POST'])
+@jwt_required()
+def generate_otp_route():
+    user_id = get_jwt_identity()
+    code = create_otp(user_id)
+    # In production you'd send this to the user's email/SMS.
+    return jsonify({"msg": "OTP generated", "code": code}), 200
+
+@auth_bp.route('/verify-otp', methods=['POST'])
+@jwt_required()
+def verify_otp_route():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    code = data.get("code")
+
+    if not code:
+        return jsonify({"msg": "Missing OTP code"}), 400
+
+    if verify_otp(user_id, code):
+        return jsonify({"msg": "OTP verified successfully"}), 200
+    else:
+        return jsonify({"msg": "Invalid or expired OTP"}), 400
