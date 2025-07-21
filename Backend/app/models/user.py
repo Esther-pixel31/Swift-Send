@@ -1,4 +1,3 @@
-# models/user.py
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -14,13 +13,12 @@ class User(Base, SerializationMixin):
     phone_number = Column(String, nullable=True)
     hashed_password = Column(String, nullable=False)
 
-    kyc_status = Column(String, default="not_started")  # e.g., pending, verified, rejected
+    kyc_status = Column(String, default="not_started")  
     is_verified = Column(Boolean, default=False)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
     wallets = relationship("Wallet", back_populates="user")
     beneficiaries = relationship("Beneficiary", back_populates="user")
     transactions = relationship("Transaction", back_populates="user")

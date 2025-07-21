@@ -9,11 +9,11 @@ class Transaction(Base, SerializationMixin):
     id = Column(Integer, primary_key=True)
     
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    beneficiary_id = Column(Integer, ForeignKey('beneficiaries.id'), nullable=True)  # optional if it's a deposit/withdrawal
+    beneficiary_id = Column(Integer, ForeignKey('beneficiaries.id'), nullable=True)  
 
     amount = Column(Numeric, nullable=False)
-    transaction_type = Column(String, nullable=False)  # e.g. "deposit", "withdrawal", "transfer", "receive"
-    status = Column(String, default="pending")  # pending, success, failed
+    transaction_type = Column(String, nullable=False)  
+    status = Column(String, default="pending")  
     currency = Column(String(10), default="KES")
     exchange_rate = Column(Float, nullable=True)
     
@@ -21,7 +21,7 @@ class Transaction(Base, SerializationMixin):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
+    
     user = relationship("User", back_populates="transactions")
     beneficiary = relationship("Beneficiary", back_populates="transactions")
 
