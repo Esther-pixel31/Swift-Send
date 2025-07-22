@@ -9,7 +9,7 @@ def generate_otp_code():
 def create_otp(user_id):
     session = SessionLocal()
     code = generate_otp_code()
-    otp = OTPCode(user_id=user_id, code=code, expires_at=datetime.utcnow() + timedelta(minutes=1))
+    otp = OTPCode(user_id=user_id, code=code, expires_at=datetime.utcnow() + timedelta(minutes=15))
     session.add(otp)
     session.commit()
     session.close()
