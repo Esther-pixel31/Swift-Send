@@ -65,23 +65,6 @@ def login():
     finally:
         session.close()
 
-@auth_bp.route('/me', methods=['GET'])
-@jwt_required()
-def me():
-    user_id = get_jwt_identity()
-    session = SessionLocal()
-    try:
-        user = session.query(User).get(user_id)
-        if not user:
-            return jsonify({"msg": "User not found"}), 404
-
-        return jsonify({
-            "id": user.id,
-            "name": user.name,
-            "email": user.email
-        })
-    finally:
-        session.close()
 
 @auth_bp.route('/generate-otp', methods=['POST'])
 @jwt_required()

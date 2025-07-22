@@ -15,6 +15,9 @@ class Wallet(Base, SerializationMixin):
     daily_limit = Column(Numeric, default=0)
     monthly_limit = Column(Numeric, default=0)
     last_spending_reset = Column(DateTime, default=datetime.utcnow)
+    daily_spent = Column(Numeric(precision=12, scale=2), default=0.00)
+    monthly_spent = Column(Numeric(precision=12, scale=2), default=0.00)
+
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

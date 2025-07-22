@@ -6,7 +6,7 @@ from ..models.user import User
 
 user_bp = Blueprint('user', __name__)
 
-# 1. Get current user profile
+# 1. Get current user info
 @user_bp.route('/me', methods=['GET'])
 @jwt_required()
 def get_current_user():
@@ -16,7 +16,16 @@ def get_current_user():
         user = session.query(User).get(user_id)
         if not user:
             return jsonify({"msg": "User not found"}), 404
-        return jsonify(user.serialize()), 200
+
+        return jsonify({
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "phone_number": user.phone_number,
+            "kyc_status": user.kyc_status,
+            "is_verified": user.is_verified,
+            "created_at": user.created_at.isoformat()
+        }), 200
     finally:
         session.close()
 
