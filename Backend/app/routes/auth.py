@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from sqlalchemy.exc import IntegrityError
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, create_refresh_token
 import traceback
 from ..models.wallet import Wallet
 
@@ -56,10 +56,13 @@ def login():
     session = SessionLocal()
     try:
         user = session.query(User).filter_by(email=email).first()
-
         if user and user.check_password(password):
             access_token = create_access_token(identity=user.id)
-            return jsonify({"access_token": access_token}), 200
+            refresh_token = create_refresh_token(identity=user.id)
+            return jsonify({
+                "access_token": access_token,
+                "refresh_token": refresh_token
+            }), 200
 
         return jsonify({"msg": "Invalid credentials"}), 401
     finally:
@@ -87,3 +90,12 @@ def verify_otp_route():
         return jsonify({"msg": "OTP verified successfully"}), 200
     else:
         return jsonify({"msg": "Invalid or expired OTP"}), 400
+
+@auth_bp.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    user_id = get_jwt_identity()
+    new_access_token = create_access_token(identity=user_id)
+    return jsonify({
+        "access_token": new_access_token
+    }), 200
