@@ -1,17 +1,25 @@
 from datetime import datetime
+from decimal import Decimal
 
 def enforce_spending_limit(wallet, amount):
     now = datetime.utcnow()
+    amount = Decimal(amount)
 
+    # Reset logic
     if not wallet.last_spending_reset or wallet.last_spending_reset.date() != now.date():
-        wallet.daily_spent = 0
-        
+        wallet.daily_spent = Decimal("0.00")
+
         if not wallet.last_spending_reset or wallet.last_spending_reset.month != now.month:
-            wallet.monthly_spent = 0
+            wallet.monthly_spent = Decimal("0.00")
+
         wallet.last_spending_reset = now
 
-    projected_daily = wallet.daily_spent + amount
-    projected_monthly = wallet.monthly_spent + amount
+    # Ensure safe defaults
+    daily_spent = wallet.daily_spent or Decimal("0.00")
+    monthly_spent = wallet.monthly_spent or Decimal("0.00")
+
+    projected_daily = daily_spent + amount
+    projected_monthly = monthly_spent + amount
 
     if wallet.daily_limit and projected_daily > wallet.daily_limit:
         return False, "Daily spending limit exceeded"

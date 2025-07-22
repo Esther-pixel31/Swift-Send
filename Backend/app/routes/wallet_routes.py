@@ -7,6 +7,7 @@ from ..db.session import SessionLocal
 from ..utils.spending import enforce_spending_limit
 from datetime import datetime
 from ..utils.mock_notify import send_mock_notification
+from decimal import Decimal, InvalidOperation
 
 wallet_bp = Blueprint('wallet', __name__)
 
@@ -31,9 +32,12 @@ def get_wallet():
 @jwt_required()
 def deposit_funds():
     data = request.get_json()
-    amount = data.get('amount')
+    try:
+        amount = Decimal(str(data.get('amount')))
+    except (InvalidOperation, TypeError):
+        return jsonify({'msg': 'Invalid deposit amount'}), 400
 
-    if not amount or amount <= 0:
+    if amount <= 0:
         return jsonify({'msg': 'Invalid deposit amount'}), 400
 
     user_id = get_jwt_identity()
@@ -48,7 +52,6 @@ def deposit_funds():
         session.commit()
 
         send_mock_notification(user_id, f"You deposited {amount} {wallet.currency}. New balance: {wallet.balance}")
-
         return jsonify({'msg': 'Deposit successful', 'new_balance': float(wallet.balance)}), 200
     except SQLAlchemyError:
         session.rollback()
@@ -61,9 +64,12 @@ def deposit_funds():
 @jwt_required()
 def withdraw_funds():
     data = request.get_json()
-    amount = data.get('amount')
+    try:
+        amount = Decimal(str(data.get('amount')))
+    except (InvalidOperation, TypeError):
+        return jsonify({'msg': 'Invalid withdrawal amount'}), 400
 
-    if not amount or amount <= 0:
+    if amount <= 0:
         return jsonify({'msg': 'Invalid withdrawal amount'}), 400
 
     user_id = get_jwt_identity()
@@ -100,6 +106,7 @@ def withdraw_funds():
         return jsonify({'msg': 'Withdrawal failed'}), 500
     finally:
         session.close()
+
 
 @wallet_bp.route('/set-limits', methods=['POST'])
 @jwt_required()
