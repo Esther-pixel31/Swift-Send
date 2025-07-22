@@ -111,3 +111,4 @@ Desktop.ini
 *.swp
 *.swo
 .env
+Backend/.env
