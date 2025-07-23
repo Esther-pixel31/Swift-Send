@@ -62,3 +62,31 @@ def upload_document():
         session.close()
 
     return jsonify({'msg': 'Document uploaded and saved successfully'}), 201
+
+@kyc_bp.route('/status', methods=['GET'])
+@jwt_required()
+def get_kyc_status():
+    user_id = get_jwt_identity()
+    session = SessionLocal()
+
+    try:
+        kyc_doc = session.query(KYC).filter_by(user_id=user_id).order_by(KYC.id.desc()).first()
+
+        if not kyc_doc:
+            return jsonify({"status": "not_submitted"}), 200
+
+        response = {
+            "status": kyc_doc.status,
+            "document_type": kyc_doc.document_type,
+            "document_number": decrypt_data(kyc_doc.document_number),
+            "reviewed_at": kyc_doc.reviewed_at,
+            "reviewed_by": kyc_doc.reviewed_by,
+        }
+
+        if kyc_doc.status == "rejected":
+            response["rejection_reason"] = kyc_doc.rejection_reason
+
+        return jsonify(response), 200
+
+    finally:
+        session.close()

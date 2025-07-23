@@ -3,6 +3,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.exc import SQLAlchemyError
 from ..db.session import SessionLocal
 from ..models.user import User
+from ..utils.auth import active_required # ✅ add this import
+
 
 user_bp = Blueprint('user', __name__)
 
@@ -93,3 +95,9 @@ def delete_account():
         return jsonify({"msg": "Account deletion failed"}), 500
     finally:
         session.close()
+
+@user_bp.route('/protected', methods=['GET'])
+@jwt_required()
+@active_required
+def protected_route():
+    return jsonify({"msg": "Account Active"}), 200
