@@ -13,7 +13,12 @@ class User(Base, SerializationMixin):
     phone_number = Column(String, nullable=True)
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
-    role = Column(String, default="user") 
+    role = Column(String, default="user")
+
+    #2FA and security features 
+    otp_secret = Column(String, nullable=True)
+    otp_verified = Column(Boolean, default=False)
+    biometric_enabled = Column(Boolean, default=False)
     
     kyc_status = Column(String, default="not_started")  
     is_verified = Column(Boolean, default=False)

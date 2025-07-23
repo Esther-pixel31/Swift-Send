@@ -5,8 +5,10 @@ from flask import Flask
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from .config import Config, TestConfig
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_talisman import Talisman
 
-# Import your blueprints
 from .routes.auth import auth_bp 
 from .routes.kyc import kyc_bp
 from .routes.wallet_routes import wallet_bp
@@ -21,7 +23,16 @@ from .utils.scheduler import start_scheduler
 
 def create_app(testing=False):  # Accept a testing parameter
     app = Flask(__name__)
+
+    Talisman(app, content_security_policy={
+        'default-src': "'self'",
+        'script-src': "'self'",
+        'style-src': "'self'",
+    })
     
+    # Rate Limiter
+    limiter = Limiter(get_remote_address, app=app, default_limits=["100 per hour"])
+
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
     # Load appropriate config

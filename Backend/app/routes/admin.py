@@ -5,26 +5,14 @@ from ..models.fraud_log import FraudLog
 from ..models.user import User
 from ..db.session import SessionLocal
 from functools import wraps
+from ..utils.auth import admin_required
 
 admin_bp = Blueprint('admin', __name__)
-
-def admin_required(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        session = SessionLocal()
-        user_id = get_jwt_identity()
-        user = session.query(User).get(user_id)
-        if not user or user.role != 'admin':
-            session.close()
-            return jsonify({"msg": "Admin access required"}), 403
-        session.close()
-        return func(*args, **kwargs)
-    return wrapper
-
 
 @admin_bp.route('/fraud/logs', methods=['GET'])
 @jwt_required()
 @admin_required
+
 def get_fraud_logs():
     session = SessionLocal()
     user_id = get_jwt_identity()
@@ -56,3 +44,70 @@ def reactivate_user(user_id):
     session.commit()
     session.close()
     return jsonify({"msg": f"User {user.email} reactivated"}), 200
+
+@admin_bp.route('/kyc/approve/<int:kyc_id>', methods=['POST'])
+@jwt_required()
+@admin_required
+def approve_kyc(kyc_id):
+    session = SessionLocal()
+    try:
+        kyc_doc = session.query(KYC).get(kyc_id)
+        if not kyc_doc:
+            return jsonify({"msg": "KYC document not found"}), 404
+
+        if kyc_doc.status == 'approved':
+            return jsonify({"msg": "Already approved"}), 400
+
+        kyc_doc.status = 'approved'
+        kyc_doc.reviewed_by = get_jwt_identity()
+        kyc_doc.reviewed_at = datetime.utcnow()
+
+        user = session.query(User).get(kyc_doc.user_id)
+        user.kyc_status = 'approved'
+        user.is_verified = True
+
+        session.commit()
+        return jsonify({"msg": "KYC approved"}), 200
+    finally:
+        session.close()
+
+@admin_bp.route('/kyc/reject/<int:kyc_id>', methods=['POST'])
+@jwt_required()
+@admin_required
+def reject_kyc(kyc_id):
+    data = request.get_json()
+    reason = data.get("reason", "Not specified")
+
+    session = SessionLocal()
+    try:
+        kyc_doc = session.query(KYC).get(kyc_id)
+        if not kyc_doc:
+            return jsonify({"msg": "KYC document not found"}), 404
+
+        if kyc_doc.status == 'rejected':
+            return jsonify({"msg": "Already rejected"}), 400
+
+        kyc_doc.status = 'rejected'
+        kyc_doc.reviewed_by = get_jwt_identity()
+        kyc_doc.reviewed_at = datetime.utcnow()
+        kyc_doc.rejection_reason = reason
+
+        user = session.query(User).get(kyc_doc.user_id)
+        user.kyc_status = 'rejected'
+        user.is_verified = False
+
+        session.commit()
+        return jsonify({"msg": "KYC rejected", "reason": reason}), 200
+    finally:
+        session.close()
+
+@admin_bp.route('/kyc/pending', methods=['GET'])
+@jwt_required()
+@admin_required
+def list_pending_kycs():
+    session = SessionLocal()
+    try:
+        pending_docs = session.query(KYC).filter_by(status='pending').all()
+        return jsonify([doc.to_dict() for doc in pending_docs]), 200
+    finally:
+        session.close()

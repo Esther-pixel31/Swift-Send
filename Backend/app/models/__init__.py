@@ -8,6 +8,7 @@ from .scheduled_transfer import ScheduledTransfer
 from .otp_code import OTPCode
 from .fraud_rule import FraudRule
 from .fraud_log import FraudLog
+from .kyc import KYC
 
 
 

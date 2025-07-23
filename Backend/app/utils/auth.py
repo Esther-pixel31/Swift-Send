@@ -29,3 +29,24 @@ def check_user_active(user):
 
 def hash_password(password: str) -> str:
     return generate_password_hash(password)
+
+def verified_user_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        session = SessionLocal()
+        user = session.get(User, get_jwt_identity())
+        if not user or not user.is_verified:
+            return jsonify({"msg": "User is not KYC-verified"}), 403
+        return fn(*args, **kwargs)
+    return wrapper
+
+def admin_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        session = SessionLocal()
+        user = session.query(User).get(get_jwt_identity())
+        session.close()
+        if user and user.role == "admin":
+            return fn(*args, **kwargs)
+        return jsonify({"msg": "Admins only"}), 403
+    return wrapper
