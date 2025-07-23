@@ -12,7 +12,9 @@ class User(Base, SerializationMixin):
     email = Column(String, unique=True, nullable=False)
     phone_number = Column(String, nullable=True)
     hashed_password = Column(String, nullable=False)
-
+    is_active = Column(Boolean, default=True)
+    role = Column(String, default="user") 
+    
     kyc_status = Column(String, default="not_started")  
     is_verified = Column(Boolean, default=False)
 
@@ -25,6 +27,7 @@ class User(Base, SerializationMixin):
     audit_logs = relationship("AuditLog", back_populates="user")
     scheduled_transfers = relationship("ScheduledTransfer", back_populates="user")
     kyc_docs = relationship("KYC", back_populates="user")
+    fraud_logs = relationship("FraudLog", back_populates="user")
 
 
     def set_password(self, password):

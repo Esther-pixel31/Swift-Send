@@ -56,7 +56,11 @@ def login():
     session = SessionLocal()
     try:
         user = session.query(User).filter_by(email=email).first()
+
         if user and user.check_password(password):
+            if not user.is_active:
+                return jsonify({"msg": "Your account is suspended"}), 403
+
             access_token = create_access_token(identity=user.id)
             refresh_token = create_refresh_token(identity=user.id)
             return jsonify({
@@ -67,7 +71,6 @@ def login():
         return jsonify({"msg": "Invalid credentials"}), 401
     finally:
         session.close()
-
 
 @auth_bp.route('/generate-otp', methods=['POST'])
 @jwt_required()
