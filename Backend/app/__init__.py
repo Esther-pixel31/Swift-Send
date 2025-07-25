@@ -24,11 +24,14 @@ from .utils.scheduler import start_scheduler
 def create_app(testing=False):  # Accept a testing parameter
     app = Flask(__name__)
 
-    Talisman(app, content_security_policy={
+    Talisman(app,
+    force_https=False,  # 👈 Disable HTTPS redirects
+    content_security_policy={
         'default-src': "'self'",
         'script-src': "'self'",
         'style-src': "'self'",
-    })
+    }
+)
     
     # Rate Limiter
     limiter = Limiter(get_remote_address, app=app, default_limits=["100 per hour"])
@@ -41,7 +44,8 @@ def create_app(testing=False):  # Accept a testing parameter
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
 
     JWTManager(app)
-    CORS(app)
+    CORS(app, origins=["http://127.0.0.1:5173"], supports_credentials=True)
+
 
     # Register Blueprints
     app.register_blueprint(auth_bp, url_prefix='/api/auth')

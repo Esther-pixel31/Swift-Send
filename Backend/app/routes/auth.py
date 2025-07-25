@@ -6,7 +6,8 @@ from ..models.wallet import Wallet
 from ..models.user import User
 from ..db.session import SessionLocal
 from ..utils.otp import create_otp, verify_otp
-from ..schemas import RegisterSchema  # import at top
+from ..schemas import RegisterSchema 
+from ..schemas import LoginSchema
 from pydantic import ValidationError
 
 auth_bp = Blueprint('auth', __name__)

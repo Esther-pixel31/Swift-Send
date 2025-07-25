@@ -31,8 +31,10 @@ class User(Base, SerializationMixin):
     transactions = relationship("Transaction", back_populates="user")
     audit_logs = relationship("AuditLog", back_populates="user")
     scheduled_transfers = relationship("ScheduledTransfer", back_populates="user")
-    kyc_docs = relationship("KYC", back_populates="user")
+    kyc_docs = relationship("KYC", back_populates="user", foreign_keys="[KYC.user_id]")
+
     fraud_logs = relationship("FraudLog", back_populates="user")
+    reviewed_docs = relationship("KYC", back_populates="reviewer", foreign_keys="[KYC.reviewed_by]")
 
 
     def set_password(self, password):
