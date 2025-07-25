@@ -13,29 +13,41 @@ export default function AuthWatcher() {
 
   const accessToken = useSelector((state) => state.auth.accessToken);
   const refreshToken = useSelector((state) => state.auth.refreshToken);
+
   const publicRoutes = ['/login', '/register', '/verify-otp'];
 
   useEffect(() => {
     const storedAccess = localStorage.getItem('accessToken');
     const storedRefresh = localStorage.getItem('refreshToken');
 
-    // Hydrate Redux store from localStorage
+    // Hydrate Redux from localStorage
     if (!accessToken && storedAccess && !isTokenExpired(storedAccess)) {
       dispatch(setAuthFromStorage({ accessToken: storedAccess, refreshToken: storedRefresh }));
       return;
     }
 
+    // No token or expired
     if (!accessToken || isTokenExpired(accessToken)) {
       dispatch(logout());
-
       if (!publicRoutes.includes(location.pathname)) {
         toast.info('Session expired. Please log in again.');
         navigate('/login');
       }
-    } else {
-      const { exp } = jwtDecode(accessToken);
-      const delay = exp * 1000 - Date.now();
+      return;
+    }
 
+    // 🔐 Redirect to OTP page if not verified
+    try {
+      const decoded = jwtDecode(accessToken);
+      const { otp_verified, exp } = decoded;
+
+      if (!otp_verified && location.pathname !== '/verify-otp') {
+        navigate('/verify-otp');
+        return;
+      }
+
+      // Auto logout on expiry
+      const delay = exp * 1000 - Date.now();
       const timeoutId = setTimeout(() => {
         dispatch(logout());
         toast.info('Session expired. Please log in again.');
@@ -43,6 +55,10 @@ export default function AuthWatcher() {
       }, delay);
 
       return () => clearTimeout(timeoutId);
+
+    } catch {
+      dispatch(logout());
+      navigate('/login');
     }
   }, [accessToken, refreshToken, dispatch, location.pathname, navigate]);
 

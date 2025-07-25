@@ -14,6 +14,9 @@ class User(Base, SerializationMixin):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     role = Column(String, default="user")
+    card_number = Column(String(16), unique=True, nullable=True)
+    card_expiry = Column(String(5), nullable=True)
+    card_cvc = Column(String, nullable=True)
 
     #2FA and security features 
     otp_secret = Column(String, nullable=True)

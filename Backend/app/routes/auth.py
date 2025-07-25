@@ -1,17 +1,21 @@
 from flask import Blueprint, request, jsonify
 from sqlalchemy.exc import IntegrityError
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, create_refresh_token
-import traceback
+from flask_jwt_extended import (
+    create_access_token, jwt_required, get_jwt_identity,
+    create_refresh_token
+)
 from ..models.wallet import Wallet
 from ..models.user import User
 from ..db.session import SessionLocal
 from ..utils.otp import create_otp, verify_otp
-from ..schemas import RegisterSchema 
-from ..schemas import LoginSchema
+from ..schemas import RegisterSchema, LoginSchema
 from pydantic import ValidationError
+from ..utils.card import generate_card_number
+from datetime import datetime, timedelta
+from ..utils.encryption import encrypt_cvc
+import random
 
 auth_bp = Blueprint('auth', __name__)
-
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
@@ -25,21 +29,36 @@ def register():
         if session.query(User).filter_by(email=data.email).first():
             return jsonify({"msg": "Email already exists"}), 409
 
-        user = User(name=data.name, email=data.email)
+        user = User(
+            name=data.name,
+            email=data.email,
+            card_number=generate_card_number()  # 🔐 Assign card number here
+        )
         user.set_password(data.password)
 
         session.add(user)
-        session.flush()
+        session.flush()  # Get user.id
+
+        user.card_cvc = encrypt_cvc(''.join(str(random.randint(0, 9)) for _ in range(3)))
+        user.card_expiry = (datetime.utcnow() + timedelta(days=365 * 4)).strftime('%m/%y')
+        user.card_cvc = ''.join(str(random.randint(0, 9)) for _ in range(3))
 
         wallet = Wallet(user_id=user.id, balance=0.0, currency="USD")
         session.add(wallet)
         session.commit()
 
         return jsonify({"msg": "User and wallet created successfully"}), 201
+
     except Exception as e:
+        print("🚨 Register Error:", e)
+        session.rollback()
         return jsonify({"msg": "Internal server error"}), 500
+
     finally:
         session.close()
+
+
+
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
@@ -59,12 +78,24 @@ def login():
             if not user.is_active:
                 return jsonify({"msg": "Your account is suspended"}), 403
 
-            # 🚨 OTP must be verified
-            if not user.otp_verified:
-                return jsonify({"msg": "OTP verification required"}), 401
-
-            access_token = create_access_token(identity=user.id)
+            # ✅ Embed claims
+            claims = {
+                "email": user.email,
+                "name": user.name,
+                "otp_verified": user.otp_verified,
+                "card_number": user.card_number,
+                "card_expiry": user.card_expiry,
+                "card_cvc": user.card_cvc
+            }
+            access_token = create_access_token(identity=user.id, additional_claims=claims)
             refresh_token = create_refresh_token(identity=user.id)
+
+            if not user.otp_verified:
+                return jsonify({
+                    "msg": "OTP verification required",
+                    "access_token": access_token,
+                    "refresh_token": refresh_token
+                }), 200
 
             return jsonify({
                 "access_token": access_token,
@@ -75,12 +106,14 @@ def login():
     finally:
         session.close()
 
+
 @auth_bp.route('/generate-otp', methods=['POST'])
 @jwt_required()
 def generate_otp_route():
     user_id = get_jwt_identity()
     code = create_otp(user_id)
     return jsonify({"msg": "OTP generated", "code": code}), 200
+
 
 @auth_bp.route('/verify-otp', methods=['POST'])
 @jwt_required()
@@ -98,7 +131,24 @@ def verify_otp_route():
             user = session.query(User).get(user_id)
             user.otp_verified = True
             session.commit()
-            return jsonify({"msg": "OTP verified successfully"}), 200
+
+            # ✅ Return new tokens after verification with updated claim
+            claims = {
+                "email": user.email,
+                "name": user.name,               # ✅ this line ensures name is in token
+                "otp_verified": user.otp_verified,
+                "card_number": user.card_number,
+                "card_expiry": user.card_expiry,
+                "card_cvc": user.card_cvc,
+            }
+            access_token = create_access_token(identity=user.id, additional_claims=claims)
+            refresh_token = create_refresh_token(identity=user.id)
+
+            return jsonify({
+                "msg": "OTP verified successfully",
+                "access_token": access_token,
+                "refresh_token": refresh_token
+            }), 200
         else:
             return jsonify({"msg": "Invalid or expired OTP"}), 400
     finally:
@@ -109,10 +159,24 @@ def verify_otp_route():
 @jwt_required(refresh=True)
 def refresh():
     user_id = get_jwt_identity()
-    new_access_token = create_access_token(identity=user_id)
-    return jsonify({
-        "access_token": new_access_token
-    }), 200
+
+    session = SessionLocal()
+    try:
+        user = session.query(User).get(user_id)
+        claims = {
+                "email": user.email,
+                "name": user.name,               # ✅ this line ensures name is in token
+                "otp_verified": user.otp_verified,
+                "card_number": user.card_number
+            }
+        new_access_token = create_access_token(identity=user.id, additional_claims=claims)
+
+        return jsonify({
+            "access_token": new_access_token
+        }), 200
+    finally:
+        session.close()
+
 
 @auth_bp.route('/logout', methods=['POST'])
 @jwt_required()
@@ -128,6 +192,7 @@ def logout():
     finally:
         session.close()
 
+
 @auth_bp.route('/biometric-auth', methods=['POST'])
 @jwt_required()
 def biometric_auth():
@@ -138,8 +203,6 @@ def biometric_auth():
         if not user or not user.biometric_enabled:
             return jsonify({"msg": "Biometric authentication not enabled for this user"}), 403
 
-        # Simulate biometric verification here
-        # In reality, verify signed biometric payload from frontend (e.g., FaceID/Fingerprint)
         biometric_payload = request.json.get("biometric_token")
         if biometric_payload != "stub-token":
             return jsonify({"msg": "Invalid biometric verification"}), 401

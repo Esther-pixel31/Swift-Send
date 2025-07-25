@@ -12,6 +12,7 @@ import Beneficiaries from './pages/Beneficiaries';
 import DashboardLayout from './components/DashboardLayout';
 import 'react-toastify/dist/ReactToastify.css'
 import AuthWatcher from './components/AuthWatcher';
+import OTPVerification from './pages/OTPVerification';
 
  export default function App() {
   return (
@@ -21,7 +22,9 @@ import AuthWatcher from './components/AuthWatcher';
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/verify-otp" element={<OTPVerification />} />
         <Route path="/" element={<DashboardLayout />}>
+          <Route path="dashboard" element={<WalletDashboard />} />
           <Route path="wallet" element={<WalletDashboard />} />
           <Route path="beneficiaries" element={<Beneficiaries />} />
         </Route>
