@@ -9,6 +9,7 @@ class Beneficiary(Base, SerializationMixin):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     name = Column(String, nullable=False)
+    email = Column(String, nullable=True)
     phone_number = Column(String, nullable=False)
     bank_account_number = Column(String, nullable=True)
     bank_name = Column(String, nullable=True)

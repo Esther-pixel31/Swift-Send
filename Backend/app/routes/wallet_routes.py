@@ -11,7 +11,7 @@ from decimal import Decimal, InvalidOperation
 
 wallet_bp = Blueprint('wallet', __name__)
 
-@wallet_bp.route('/', methods=['GET'])
+@wallet_bp.route('/', strict_slashes=False, methods=['GET'])
 @jwt_required()
 def get_wallet():
     user_id = get_jwt_identity()
