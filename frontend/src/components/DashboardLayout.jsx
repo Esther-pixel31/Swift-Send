@@ -1,6 +1,7 @@
 import { Outlet, NavLink } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { Menu, Bell } from 'lucide-react';
+import {Wallet, Users, Send, FileText, LifeBuoy} from 'lucide-react';
 
 export default function DashboardLayout() {
   const { accessToken } = useSelector((state) => state.auth);
@@ -21,24 +22,64 @@ export default function DashboardLayout() {
             <NavLink
               to="/wallet"
               className={({ isActive }) =>
-                `block px-4 py-2 rounded-md font-medium ${
+                `flex items-center gap-3 px-4 py-2 rounded-md font-medium ${
                   isActive ? 'bg-primary text-white' : 'text-textGray hover:bg-gray-100'
                 }`
               }
             >
-              Wallet
+              <Wallet size={18} />
+              <span>Wallet</span>
             </NavLink>
+
             <NavLink
               to="/beneficiaries"
               className={({ isActive }) =>
-                `block px-4 py-2 rounded-md font-medium ${
+                `flex items-center gap-3 px-4 py-2 rounded-md font-medium ${
                   isActive ? 'bg-primary text-white' : 'text-textGray hover:bg-gray-100'
                 }`
               }
             >
-              Beneficiaries
+              <Users size={18} />
+              <span>Beneficiaries</span>
+            </NavLink>
+
+            <NavLink
+              to="/transfer"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2 rounded-md font-medium ${
+                  isActive ? 'bg-primary text-white' : 'text-textGray hover:bg-gray-100'
+                }`
+              }
+            >
+              <Send size={18} />
+              <span>Transfer</span>
+            </NavLink>
+
+            <NavLink
+              to="/transactions"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2 rounded-md font-medium ${
+                  isActive ? 'bg-primary text-white' : 'text-textGray hover:bg-gray-100'
+                }`
+              }
+            >
+              <FileText size={18} />
+              <span>Transactions</span>
+            </NavLink>
+
+            <NavLink
+              to="/support"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2 rounded-md font-medium ${
+                  isActive ? 'bg-primary text-white' : 'text-textGray hover:bg-gray-100'
+                }`
+              }
+            >
+              <LifeBuoy size={18} />
+              <span>Support</span>
             </NavLink>
           </nav>
+
         </div>
 
         {/* Footer / User */}

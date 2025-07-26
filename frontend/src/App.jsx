@@ -13,6 +13,9 @@ import DashboardLayout from './components/DashboardLayout';
 import 'react-toastify/dist/ReactToastify.css'
 import AuthWatcher from './components/AuthWatcher';
 import OTPVerification from './pages/OTPVerification';
+import Transactions from './pages/Transactions';
+import Transfer from './pages/Transfer';
+import Support from './pages/Support';
 
  export default function App() {
   return (
@@ -27,6 +30,9 @@ import OTPVerification from './pages/OTPVerification';
           <Route path="dashboard" element={<WalletDashboard />} />
           <Route path="wallet" element={<WalletDashboard />} />
           <Route path="beneficiaries" element={<Beneficiaries />} />
+          <Route path="transactions" element={<Transactions />} /> 
+          <Route path="transfer" element={<Transfer />} />         
+          <Route path="support" element={<Support />} />         
         </Route>
       </Routes>
       <ToastContainer position="top-center" autoClose={4000} />

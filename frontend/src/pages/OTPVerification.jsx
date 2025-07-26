@@ -18,7 +18,7 @@ export default function OTPVerification() {
   const { accessToken } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
 
-  // 🛑 Guard if no token
+  //  Guard if no token
   useEffect(() => {
     if (!accessToken) navigate('/login');
   }, [accessToken, navigate]);
