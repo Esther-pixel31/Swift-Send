@@ -1,54 +1,106 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { register } from '../features/auth/authSlice';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { error } = useSelector((state) => state.auth);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const result = await dispatch(register({ name, email, password }));
+    if (result.meta.requestStatus === 'fulfilled') {
+      navigate('/login');
+    }
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white p-8 shadow-md rounded-lg">
-        <h2 className="text-2xl font-semibold mb-6 text-center">Create Account</h2>
-        <form className="space-y-5">
+    <div className="min-h-screen flex items-center justify-center bg-bgLight px-4">
+      <div className="bg-cardBg p-10 rounded-3xl shadow-xl mx-auto max-w-md w-full">
+        <h1 className="text-3xl font-semibold text-center text-textDark mb-2">
+          Welcome
+        </h1>
+        <p className="text-base text-textGray text-center mb-8">
+          Hello there, create new account
+        </p>
+
+        <form className="space-y-5" onSubmit={handleSubmit}>
           <div>
-            <label className="block mb-1 font-medium">Full Name</label>
+            <label className="block text-sm text-textGray mb-1">Full Name</label>
             <input
-              type="text" value={name}
+              type="text"
+              value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full py-2 px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              placeholder="Jane Doe"
+              className="
+                w-full px-4 py-3 rounded-md border border-gray-300
+                focus:outline-none focus:ring-2 focus:ring-accent
+              "
               required
             />
           </div>
+
           <div>
-            <label className="block mb-1 font-medium">Email address</label>
+            <label className="block text-sm text-textGray mb-1">Email</label>
             <input
-              type="email" value={email}
+              type="email"
+              value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full py-2 px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              placeholder="hello@example.com"
+              className="
+                w-full px-4 py-3 rounded-md border border-gray-300
+                focus:outline-none focus:ring-2 focus:ring-accent
+              "
               required
             />
           </div>
+
           <div>
-            <label className="block mb-1 font-medium">Password</label>
+            <label className="block text-sm text-textGray mb-1">Password</label>
             <input
-              type="password" value={password}
+              type="password"
+              value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full py-2 px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              placeholder="Create a password"
+              className="
+                w-full px-4 py-3 rounded-md border border-gray-300
+                focus:outline-none focus:ring-2 focus:ring-accent
+              "
               required
             />
           </div>
+
+          {error && (
+            <p className="text-sm text-red-500">
+              {error}
+            </p>
+          )}
+
+          <p className="text-xs text-textGray">
+            By creating an account, you agree to our{' '}
+            <a href="/terms" className="text-primary underline">
+              Terms and Conditions
+            </a>.
+          </p>
+
           <button
             type="submit"
-            onClick={(e) => e.preventDefault()}
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition"
+            className="w-full py-3 bg-primary text-white rounded-md hover:bg-accent transition"
           >
-            Register
+            Sign Up
           </button>
         </form>
-        <p className="mt-4 text-center text-sm text-gray-600">
-          Already have an account?{' '}
-          <Link to="/login" className="text-indigo-600 hover:underline">Sign In</Link>
+
+        <p className="text-sm text-textGray text-center mt-6">
+          Have an account?{' '}
+          <Link to="/login" className="text-primary hover:underline font-medium">
+            Sign In
+          </Link>
         </p>
       </div>
     </div>

@@ -14,6 +14,9 @@ class User(Base, SerializationMixin):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     role = Column(String, default="user")
+    card_number = Column(String(16), unique=True, nullable=True)
+    card_expiry = Column(String(5), nullable=True)
+    card_cvc = Column(String, nullable=True)
 
     #2FA and security features 
     otp_secret = Column(String, nullable=True)
@@ -31,8 +34,10 @@ class User(Base, SerializationMixin):
     transactions = relationship("Transaction", back_populates="user")
     audit_logs = relationship("AuditLog", back_populates="user")
     scheduled_transfers = relationship("ScheduledTransfer", back_populates="user")
-    kyc_docs = relationship("KYC", back_populates="user")
+    kyc_docs = relationship("KYC", back_populates="user", foreign_keys="[KYC.user_id]")
+    support_tickets = relationship("SupportTicket", back_populates="user")
     fraud_logs = relationship("FraudLog", back_populates="user")
+    reviewed_docs = relationship("KYC", back_populates="reviewer", foreign_keys="[KYC.reviewed_by]")
 
 
     def set_password(self, password):

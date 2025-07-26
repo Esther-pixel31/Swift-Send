@@ -19,13 +19,18 @@ def get_current_user():
         if not user:
             return jsonify({"msg": "User not found"}), 404
 
+        try:
+            decrypted_cvc = decrypt_cvc(user.card_cvc)
+        except Exception:
+            decrypted_cvc = "Unavailable"
+
         return jsonify({
             "id": user.id,
             "name": user.name,
             "email": user.email,
-            "phone_number": user.phone_number,
-            "kyc_status": user.kyc_status,
-            "is_verified": user.is_verified,
+            "card_number": user.card_number,
+            "card_expiry": user.card_expiry,
+            "card_cvc": decrypted_cvc,
             "created_at": user.created_at.isoformat()
         }), 200
     finally:

@@ -21,6 +21,14 @@ class KYC(Base, SerializationMixin):
     reviewed_at = Column(DateTime, nullable=True)
     rejection_reason = Column(String, nullable=True)
 
-    user = relationship("User", back_populates="kyc_docs", foreign_keys=[user_id])
-    reviewer = relationship("User", foreign_keys=[reviewed_by])
+    user = relationship(
+        "User",
+        back_populates="kyc_docs",
+        foreign_keys=[user_id]
+    )
+    reviewer = relationship(
+        "User",
+        back_populates="reviewed_docs",  # <- must match User.reviewed_docs
+        foreign_keys=[reviewed_by]
+    )
 

@@ -18,3 +18,9 @@ def encrypt_data(plain_text: str) -> str:
 def decrypt_data(encrypted_text: str) -> str:
     """Decrypts encrypted string back to plain text."""
     return fernet.decrypt(encrypted_text.encode()).decode()
+
+def encrypt_cvc(cvc_plain: str) -> str:
+    return fernet.encrypt(cvc_plain.encode()).decode()
+
+def decrypt_cvc(cvc_encrypted: str) -> str:
+    return fernet.decrypt(cvc_encrypted.encode()).decode()
