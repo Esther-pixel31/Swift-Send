@@ -13,6 +13,8 @@ from pydantic import ValidationError
 from ..utils.card import generate_card_number
 from datetime import datetime, timedelta
 from ..utils.encryption import encrypt_cvc
+from flask import request
+from ..models.support_ticket import SupportTicket
 import random
 
 auth_bp = Blueprint('auth', __name__)
@@ -210,3 +212,36 @@ def biometric_auth():
         return jsonify({"msg": "Biometric verified successfully"}), 200
     finally:
         session.close()
+
+@auth_bp.route("/support", methods=["POST"])
+@jwt_required()
+def create_ticket():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    subject = data.get("subject")
+    message = data.get("message")
+
+    if not subject or not message:
+        return jsonify({"msg": "Subject and message are required"}), 400
+
+    session = SessionLocal()
+    ticket = SupportTicket(user_id=user_id, subject=subject, message=message)
+    session.add(ticket)
+    session.commit()
+
+    # 🟢 Notify the user
+    from app.utils.mock_notify import send_mock_notification
+    send_mock_notification(user_id, f"Your support ticket '{subject}' has been submitted.")
+
+    session.close()
+    return jsonify({"msg": "Ticket submitted"}), 201
+
+
+@auth_bp.route("/support", methods=["GET"])
+@jwt_required()
+def list_user_tickets():
+    user_id = get_jwt_identity()
+    session = SessionLocal()
+    tickets = session.query(SupportTicket).filter_by(user_id=user_id).order_by(SupportTicket.created_at.desc()).all()
+    session.close()
+    return jsonify([t.serialize() for t in tickets]), 200

@@ -9,6 +9,7 @@ from .otp_code import OTPCode
 from .fraud_rule import FraudRule
 from .fraud_log import FraudLog
 from .kyc import KYC
+from .fx_rate import FXRate
 
 
 

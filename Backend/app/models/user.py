@@ -35,7 +35,7 @@ class User(Base, SerializationMixin):
     audit_logs = relationship("AuditLog", back_populates="user")
     scheduled_transfers = relationship("ScheduledTransfer", back_populates="user")
     kyc_docs = relationship("KYC", back_populates="user", foreign_keys="[KYC.user_id]")
-
+    support_tickets = relationship("SupportTicket", back_populates="user")
     fraud_logs = relationship("FraudLog", back_populates="user")
     reviewed_docs = relationship("KYC", back_populates="reviewer", foreign_keys="[KYC.reviewed_by]")
 
