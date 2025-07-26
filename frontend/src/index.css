@@ -9,3 +9,10 @@
     @apply bg-bgLight text-textDark;
   }
 }
+
+.input {
+  @apply border px-3 py-2 rounded w-full;
+}
+.btn {
+  @apply bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700;
+}

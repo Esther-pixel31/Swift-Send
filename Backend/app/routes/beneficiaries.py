@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ..models.beneficiary import Beneficiary
 from ..db.session import SessionLocal
+from sqlalchemy.exc import SQLAlchemyError
 
 beneficiary_bp = Blueprint('beneficiaries', __name__)
 
@@ -25,7 +26,7 @@ def toggle_favorite_beneficiary(beneficiary_id):
     finally:
         session.close()
 
-@beneficiary_bp.route('/', methods=['POST'])
+@beneficiary_bp.route('/', strict_slashes=False, methods=['POST'])
 @jwt_required()
 def add_beneficiary():
     user_id = get_jwt_identity()
@@ -36,22 +37,24 @@ def add_beneficiary():
             user_id=user_id,
             name=data.get('name'),
             email=data.get('email'),
-            phone=data.get('phone'),
-            bank_account=data.get('bank_account'),
+            phone_number=data.get('phone_number'),
+            bank_account_number=data.get('bank_account_number'),
             bank_name=data.get('bank_name'),
-            currency=data.get('currency'),
             is_favorite=data.get('is_favorite', False)
         )
         session.add(beneficiary)
         session.commit()
         return jsonify({"msg": "Beneficiary added"}), 201
-    except SQLAlchemyError as e:
+        
+    except Exception as e:  # <-- broader than just SQLAlchemyError
         session.rollback()
+        print("❌ Exception in add_beneficiary:", e)  # ✅ Log the actual error
         return jsonify({"msg": "Failed to add beneficiary", "error": str(e)}), 500
+
     finally:
         session.close()
 
-@beneficiary_bp.route('/', methods=['GET'])
+@beneficiary_bp.route('/', strict_slashes=False, methods=['GET'])
 @jwt_required()
 def list_beneficiaries():
     user_id = get_jwt_identity()
@@ -73,7 +76,7 @@ def update_beneficiary(beneficiary_id):
         if not beneficiary:
             return jsonify({"msg": "Beneficiary not found"}), 404
 
-        for key in ['name', 'email', 'phone', 'bank_account', 'bank_name', 'currency', 'is_favorite']:
+        for key in ['name', 'email', 'phone_number', 'bank_account_number', 'bank_name', 'is_favorite']:
             if key in data:
                 setattr(beneficiary, key, data[key])
 

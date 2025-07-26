@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { jwtDecode } from 'jwt-decode';
-import { maskCardNumber } from '../utils/maskCardNumber';
+import axios from '../utils/axiosInstance';
 import {
   CreditCard, Send, DollarSign, Smartphone, Receipt,
-  PiggyBank, Wallet, FileText, Users, Home, Eye, EyeOff
+  PiggyBank, Wallet, FileText, Users, Home, Eye, EyeOff, ClipboardCopy
 } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const actionCards = [
   { label: 'Account and Card', icon: CreditCard, bg: 'bg-blue-100', color: 'text-blue-600' },
@@ -22,12 +23,13 @@ const actionCards = [
 
 export default function WalletDashboard() {
   const accessToken = useSelector((state) => state.auth.accessToken);
-  const [showCVC, setShowCVC] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [wallet, setWallet] = useState({ balance: 0, currency: 'KES' });
 
   let userName = 'User';
-  let cardNumber = '0000000000000000';
+  let cardNumber = '0000123456780000';
   let cardExpiry = '00/00';
-  let cardCVC = '•••';
+  let cardCVC = '000';
 
   try {
     if (accessToken && typeof accessToken === 'string') {
@@ -41,40 +43,83 @@ export default function WalletDashboard() {
     console.warn('Failed to decode token', err);
   }
 
+  useEffect(() => {
+    const fetchWallet = async () => {
+      try {
+        const res = await axios.get('/wallet');
+        setWallet(res.data);
+      } catch (err) {
+        console.error('Failed to fetch wallet info:', err);
+      }
+    };
+
+    fetchWallet();
+  }, []);
+
+  const copyAllToClipboard = () => {
+    const details = `
+      Cardholder: ${userName}
+      Card Number: ${cardNumber}
+      Expiry: ${cardExpiry}
+      CVC: ${cardCVC}
+      Balance: ${wallet?.currency || 'KES'} ${wallet?.balance?.toFixed(2) || '0.00'}
+          `.trim();
+
+    navigator.clipboard.writeText(details);
+    toast.success("Card details copied");
+  };
+
   return (
     <div className="space-y-10">
-      {/* Welcome */}
       <h2 className="text-2xl font-semibold">Hi, {userName}</h2>
 
-      {/* Card */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl p-6 max-w-xl shadow-xl relative">
-        <p className="text-sm opacity-80">Cardholder</p>
-        <h3 className="text-lg font-semibold">{userName}</h3>
-
-        <div className="mt-6 flex justify-between font-mono text-xl tracking-widest">
-          {maskCardNumber(cardNumber).split(' ').map((chunk, idx) => (
-            <span key={idx}>{chunk}</span>
-          ))}
-        </div>
-
-        <div className="mt-6 flex justify-between text-sm items-center">
+      {/* Wallet Card */}
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl p-4 w-80 shadow-lg h-40 flex flex-col justify-between">
+        {/* Top Row */}
+        <div className="flex justify-between items-start">
           <div>
-            <p className="opacity-70">Valid Thru</p>
-            <p>{cardExpiry}</p>
+            <p className="text-xs opacity-70">Cardholder</p>
+            <h3 className="text-sm font-semibold">{userName}</h3>
           </div>
           <div className="flex items-center gap-2">
-            <div>
-              <p className="opacity-70">CVC</p>
-              <p className="tracking-wider">{showCVC ? cardCVC : '•••'}</p>
-            </div>
-            <button onClick={() => setShowCVC(!showCVC)} className="focus:outline-none">
-              {showCVC ? <EyeOff size={16} /> : <Eye size={16} />}
+            <button onClick={() => setShowDetails(!showDetails)} className="text-white hover:text-gray-200">
+              {showDetails ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
+            <button onClick={copyAllToClipboard} className="text-white hover:text-gray-200">
+              <ClipboardCopy size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Card Number */}
+        <div className="font-mono text-lg tracking-widest text-center">
+          {showDetails
+            ? cardNumber.match(/.{1,4}/g)?.join(' ')
+            : '**** **** **** ****'}
+        </div>
+
+        {/* Bottom Row */}
+        <div className="flex justify-between text-xs mt-1">
+          <div>
+            <p className="opacity-60">Valid Thru</p>
+            <p>{showDetails ? cardExpiry : '**/**'}</p>
+          </div>
+          <div>
+            <p className="opacity-60">CVC</p>
+            <p>{showDetails ? cardCVC : '•••'}</p>
+          </div>
+          <div>
+            <p className="opacity-60">Balance</p>
+            <p className="font-semibold">
+              {showDetails
+                ? `${wallet?.currency} ${wallet?.balance?.toFixed(2)}`
+                : '****'}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Quick Actions */}
       <div>
         <h4 className="text-lg font-semibold mb-4">Quick Actions</h4>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
