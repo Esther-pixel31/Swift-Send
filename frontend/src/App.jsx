@@ -16,6 +16,7 @@ import OTPVerification from './pages/OTPVerification';
 import Transactions from './pages/Transactions';
 import Transfer from './pages/Transfer';
 import Support from './pages/Support';
+import Dashboard from './pages/Dashboard';
 
  export default function App() {
   return (
@@ -27,7 +28,7 @@ import Support from './pages/Support';
         <Route path="/register" element={<Register />} />
         <Route path="/verify-otp" element={<OTPVerification />} />
         <Route path="/" element={<DashboardLayout />}>
-          <Route path="dashboard" element={<WalletDashboard />} />
+          <Route path="dashboard" element={<Dashboard />} />
           <Route path="wallet" element={<WalletDashboard />} />
           <Route path="beneficiaries" element={<Beneficiaries />} />
           <Route path="transactions" element={<Transactions />} /> 
