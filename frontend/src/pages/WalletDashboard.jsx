@@ -25,6 +25,8 @@ export default function WalletDashboard() {
   const accessToken = useSelector((state) => state.auth.accessToken);
   const [showDetails, setShowDetails] = useState(false);
   const [wallet, setWallet] = useState({ balance: 0, currency: 'KES' });
+  const [txns, setTxns] = useState([]);
+  const [beneficiaries, setBeneficiaries] = useState([]);
 
   let userName = 'User';
   let cardNumber = '0000123456780000';
@@ -53,7 +55,27 @@ export default function WalletDashboard() {
       }
     };
 
+    const fetchTransactions = async () => {
+      try {
+        const res = await axios.get('/history/my-transactions');
+        setTxns(res.data.slice(0, 5));
+      } catch (err) {
+        console.error('Failed to fetch recent transactions:', err);
+      }
+    };
+
+    const fetchBeneficiaries = async () => {
+      try {
+        const res = await axios.get('/beneficiaries');
+        setBeneficiaries(res.data.slice(0, 3)); // Show top 3
+      } catch (err) {
+        console.error('Failed to fetch beneficiaries:', err);
+      }
+    };
+
     fetchWallet();
+    fetchTransactions();
+    fetchBeneficiaries();
   }, []);
 
   const copyAllToClipboard = () => {
@@ -63,7 +85,7 @@ export default function WalletDashboard() {
       Expiry: ${cardExpiry}
       CVC: ${cardCVC}
       Balance: ${wallet?.currency || 'KES'} ${wallet?.balance?.toFixed(2) || '0.00'}
-          `.trim();
+    `.trim();
 
     navigator.clipboard.writeText(details);
     toast.success("Card details copied");
@@ -75,7 +97,6 @@ export default function WalletDashboard() {
 
       {/* Wallet Card */}
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl p-4 w-80 shadow-lg h-40 flex flex-col justify-between">
-        {/* Top Row */}
         <div className="flex justify-between items-start">
           <div>
             <p className="text-xs opacity-70">Cardholder</p>
@@ -91,14 +112,10 @@ export default function WalletDashboard() {
           </div>
         </div>
 
-        {/* Card Number */}
         <div className="font-mono text-lg tracking-widest text-center">
-          {showDetails
-            ? cardNumber.match(/.{1,4}/g)?.join(' ')
-            : '**** **** **** ****'}
+          {showDetails ? cardNumber.match(/.{1,4}/g)?.join(' ') : '**** **** **** ****'}
         </div>
 
-        {/* Bottom Row */}
         <div className="flex justify-between text-xs mt-1">
           <div>
             <p className="opacity-60">Valid Thru</p>
@@ -111,9 +128,7 @@ export default function WalletDashboard() {
           <div>
             <p className="opacity-60">Balance</p>
             <p className="font-semibold">
-              {showDetails
-                ? `${wallet?.currency} ${wallet?.balance?.toFixed(2)}`
-                : '****'}
+              {showDetails ? `${wallet?.currency} ${wallet?.balance?.toFixed(2)}` : '****'}
             </p>
           </div>
         </div>
@@ -134,15 +149,38 @@ export default function WalletDashboard() {
         </div>
       </div>
 
-      {/* Placeholder Panels */}
+      {/* Transaction + Beneficiary Panels */}
       <div className="grid md:grid-cols-2 gap-6 mt-10">
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <h4 className="font-semibold mb-2">Recent Transactions</h4>
-          <p className="text-sm text-textGray">No transactions yet.</p>
+          {txns.length === 0 ? (
+            <p className="text-sm text-gray-500">No transactions yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {txns.map(tx => (
+                <li key={tx.id} className="flex justify-between text-sm border-b pb-1">
+                  <span>{tx.transaction_type}</span>
+                  <span>{tx.amount} {tx.currency}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
+
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <h4 className="font-semibold mb-2">Your Beneficiaries</h4>
-          <p className="text-sm text-textGray">No beneficiaries added.</p>
+          {beneficiaries.length === 0 ? (
+            <p className="text-sm text-gray-500">No beneficiaries added.</p>
+          ) : (
+            <ul className="space-y-2">
+              {beneficiaries.map((b, i) => (
+                <li key={i} className="flex justify-between text-sm border-b pb-1">
+                  <span>{b.name}</span>
+                  <span>{b.account_number}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>

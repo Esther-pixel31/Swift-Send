@@ -11,11 +11,12 @@ export default function Transfer() {
     note: '',
     currency: 'KES'
   });
+  const [loading, setLoading] = useState(false);
 
   const loadBeneficiaries = async () => {
     try {
       const res = await getBeneficiaries();
-      setBeneficiaries(res.data);
+      setBeneficiaries(res.data || []);
     } catch {
       toast.error('Failed to load beneficiaries');
     }
@@ -27,14 +28,21 @@ export default function Transfer() {
 
   const handleSend = async () => {
     if (!form.receiver_email || !form.amount) {
-      return toast.warn('Recipient and amount are required');
+      return toast.warn('Please select a recipient and enter an amount.');
     }
+
+    const confirmed = window.confirm(`Send ${form.amount} ${form.currency} to ${form.receiver_email}?`);
+    if (!confirmed) return;
+
+    setLoading(true);
     try {
       await sendDomesticTransfer(form);
       toast.success('Transfer successful');
       setForm({ receiver_email: '', amount: '', note: '', currency: 'KES' });
     } catch (err) {
       toast.error(err.response?.data?.msg || 'Transfer failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -52,17 +60,19 @@ export default function Transfer() {
 
         <input type="number" placeholder="Amount" className="input"
           value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
-        
+
         <input type="text" placeholder="Note (optional)" className="input"
           value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} />
-        
+
         <select value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })} className="input">
           <option value="KES">KES</option>
           <option value="USD">USD</option>
         </select>
       </div>
 
-      <button onClick={handleSend} className="btn mt-2">Send</button>
+      <button onClick={handleSend} className="btn mt-2" disabled={loading}>
+        {loading ? 'Sending...' : 'Send'}
+      </button>
     </div>
   );
 }
