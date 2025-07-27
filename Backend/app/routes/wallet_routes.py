@@ -8,6 +8,8 @@ from ..utils.spending import enforce_spending_limit
 from datetime import datetime
 from ..utils.mock_notify import send_mock_notification
 from decimal import Decimal, InvalidOperation
+from ..models.transaction import Transaction
+
 
 wallet_bp = Blueprint('wallet', __name__)
 
@@ -30,93 +32,10 @@ def get_wallet():
 
 @wallet_bp.route('/deposit', methods=['POST'])
 @jwt_required()
-def deposit_funds():
-    data = request.get_json()
-    try:
-        amount = Decimal(str(data.get('amount')))
-    except (InvalidOperation, TypeError):
-        return jsonify({'msg': 'Invalid deposit amount'}), 400
-
-    if amount <= 0:
-        return jsonify({'msg': 'Invalid deposit amount'}), 400
-
-    user_id = get_jwt_identity()
-    session = SessionLocal()
-
-    try:
-        wallet = session.query(Wallet).filter_by(user_id=user_id).first()
-        if not wallet:
-            return jsonify({'msg': 'Wallet not found'}), 404
-
-        wallet.balance += amount
-        session.commit()
-
-        send_mock_notification(user_id, f"You deposited {amount} {wallet.currency}. New balance: {wallet.balance}")
-        return jsonify({'msg': 'Deposit successful', 'new_balance': float(wallet.balance)}), 200
-    except SQLAlchemyError:
-        session.rollback()
-        return jsonify({'msg': 'Deposit failed'}), 500
-    finally:
-        session.close()
-
-
-@wallet_bp.route('/withdraw', methods=['POST'])
-@jwt_required()
-def withdraw_funds():
-    data = request.get_json()
-    try:
-        amount = Decimal(str(data.get('amount')))
-    except (InvalidOperation, TypeError):
-        return jsonify({'msg': 'Invalid withdrawal amount'}), 400
-
-    if amount <= 0:
-        return jsonify({'msg': 'Invalid withdrawal amount'}), 400
-
-    user_id = get_jwt_identity()
-    session = SessionLocal()
-    warnings = []
-
-    try:
-        wallet = session.query(Wallet).filter_by(user_id=user_id).first()
-        if not wallet:
-            return jsonify({'msg': 'Wallet not found'}), 404
-
-        if wallet.balance < amount:
-            return jsonify({'msg': 'Insufficient balance'}), 400
-
-        ok, msg = enforce_spending_limit(wallet, amount)
-        if not ok:
-            return jsonify({"msg": msg}), 403
-        elif msg:
-            warnings.append(msg)
-
-        wallet.balance -= amount
-        session.commit()
-
-        send_mock_notification(user_id, f"You withdrew {amount} {wallet.currency}. New balance: {wallet.balance}")
-
-        return jsonify({
-            "msg": "Withdrawal successful",
-            "amount": float(amount),
-            "new_balance": float(wallet.balance),
-            "warnings": warnings if warnings else None
-        }), 200
-    except SQLAlchemyError:
-        session.rollback()
-        return jsonify({'msg': 'Withdrawal failed'}), 500
-    finally:
-        session.close()
-
-
-@wallet_bp.route('/set-limits', methods=['POST'])
-@jwt_required()
-def set_wallet_limits():
+def deposit():
     user_id = get_jwt_identity()
     data = request.get_json()
-
-    daily_limit = data.get("daily_limit")
-    monthly_limit = data.get("monthly_limit")
-    budget = data.get("budget")
+    amount = Decimal(str(data.get("amount")))
 
     session = SessionLocal()
     try:
@@ -124,16 +43,120 @@ def set_wallet_limits():
         if not wallet:
             return jsonify({"msg": "Wallet not found"}), 404
 
-        if daily_limit is not None:
-            wallet.daily_limit = daily_limit
-        if monthly_limit is not None:
-            wallet.monthly_limit = monthly_limit
-        if budget is not None:
-            wallet.budget = budget
+        wallet.balance += amount
 
-        wallet.last_spending_reset = datetime.utcnow()
+        txn = Transaction(
+            user_id=user_id,
+            transaction_type="deposit",
+            amount=amount,
+            note="Wallet deposit",
+            currency=wallet.currency,
+            status="completed",
+            created_at=datetime.utcnow()
+        )
+
+
+        session.add(txn)
         session.commit()
-
-        return jsonify({"msg": "Limits updated successfully"}), 200
+        return jsonify({"msg": "Deposit successful"}), 200
+    except Exception as e:
+        session.rollback()
+        return jsonify({"msg": "Failed to deposit", "error": str(e)}), 500
     finally:
         session.close()
+
+
+
+@wallet_bp.route('/withdraw', methods=['POST'])
+@jwt_required()
+def withdraw():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    amount = Decimal(str(data.get("amount")))
+
+    session = SessionLocal()
+    try:
+        wallet = session.query(Wallet).filter_by(user_id=user_id).first()
+        if not wallet:
+            return jsonify({"msg": "Wallet not found"}), 404
+        if wallet.balance < amount:
+            return jsonify({"msg": "Insufficient balance"}), 400
+
+        wallet.balance -= amount
+
+        txn = Transaction(
+        user_id=user_id,
+        transaction_type="withdraw",
+        amount=amount,
+        note="Wallet withdrawal",
+        currency=wallet.currency,
+        status="completed",
+        created_at=datetime.utcnow()
+    )
+
+
+        session.add(txn)
+        session.commit()
+        return jsonify({"msg": "Withdrawal successful"}), 200
+    except Exception as e:
+        session.rollback()
+        print("Withdraw error:", str(e))  # Add this line
+        return jsonify({"msg": "Failed to withdraw", "error": str(e)}), 500
+
+    finally:
+        session.close()
+
+
+
+@wallet_bp.route('/update-limits', methods=['POST'])
+@jwt_required()
+def update_wallet_limits():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    session = SessionLocal()
+    try:
+        wallet = session.query(Wallet).filter_by(user_id=user_id).first()
+        if not wallet:
+            return jsonify({"msg": "Wallet not found"}), 404
+
+        daily_limit = data.get("daily_limit")
+        monthly_limit = data.get("monthly_limit")
+        budget = data.get("budget")
+
+        description_parts = []
+
+        if daily_limit is not None:
+            wallet.daily_limit = Decimal(str(daily_limit))
+            description_parts.append(f"Daily: {daily_limit}")
+        if monthly_limit is not None:
+            wallet.monthly_limit = Decimal(str(monthly_limit))
+            description_parts.append(f"Monthly: {monthly_limit}")
+        if budget is not None:
+            wallet.budget = Decimal(str(budget))
+            description_parts.append(f"Budget: {budget}")
+
+        wallet.last_spending_reset = datetime.utcnow()
+
+        # Log the limit update
+        txn = Transaction(
+    user_id=user_id,
+    transaction_type="limit-update",
+    amount=Decimal('0'),
+    note='Updated limits - ' + ', '.join(description_parts),
+    currency=wallet.currency,
+    status="completed",
+    created_at=datetime.utcnow()
+)
+
+        session.add(txn)
+
+        session.commit()
+        return jsonify({"msg": "Limits set/updated successfully"}), 200
+    except Exception:
+        session.rollback()
+        return jsonify({"msg": "Failed to set limits"}), 500
+    finally:
+        session.close()
+
+
