@@ -8,6 +8,7 @@ from io import BytesIO
 from reportlab.platypus import SimpleDocTemplate, Table
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
+from flask import request
 
 history_bp = Blueprint('history', __name__)
 

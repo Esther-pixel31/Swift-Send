@@ -16,6 +16,7 @@ class Transaction(Base, SerializationMixin):
     status = Column(String, default="pending")  
     currency = Column(String(10), default="KES")
     exchange_rate = Column(Float, nullable=True)
+    note = Column(String, nullable=True)
     
     scheduled_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
