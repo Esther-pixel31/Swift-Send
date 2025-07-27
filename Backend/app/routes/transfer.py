@@ -12,6 +12,7 @@ from ..db.session import SessionLocal
 from ..utils.auth import verified_user_required
 from ..schemas import TransferSchema
 from pydantic import ValidationError
+from ..utils.mock_notify import send_mock_notification
 
 transfer_bp = Blueprint('transfer', __name__)
 
@@ -19,18 +20,23 @@ transfer_bp = Blueprint('transfer', __name__)
 @jwt_required()
 @verified_user_required
 def domestic_transfer():
-    ok, user_or_response, status_code = check_user_active()
-    if not ok:
-        return user_or_response, status_code
-    sender = user_or_response
-
-    try:
-        data = TransferSchema(**request.get_json())
-    except ValidationError as e:
-        return jsonify({'msg': 'Invalid input', 'errors': e.errors()}), 400
-
     session = SessionLocal()
     try:
+        user_id = get_jwt_identity()
+        sender = session.query(User).get(user_id)
+        if not sender:
+            return jsonify({"msg": "User not found"}), 404
+
+        try:
+            check_user_active(sender)
+        except InactiveUserError as e:
+            return jsonify({"msg": str(e)}), 403
+
+        try:
+            data = TransferSchema(**request.get_json())
+        except ValidationError as e:
+            return jsonify({'msg': 'Invalid input', 'errors': e.errors()}), 400
+
         recipient = session.query(User).filter_by(email=data.receiver_email).first()
         if not recipient:
             return jsonify({"msg": "Recipient not found"}), 404
@@ -39,12 +45,13 @@ def domestic_transfer():
 
         sender_wallet = session.query(Wallet).filter_by(user_id=sender.id, currency=data.currency).first()
         recipient_wallet = session.query(Wallet).filter_by(user_id=recipient.id, currency=data.currency).first()
+
         if not sender_wallet or not recipient_wallet:
             return jsonify({"msg": "Wallet not found for specified currency"}), 404
         if sender_wallet.balance < data.amount:
             return jsonify({"msg": "Insufficient balance"}), 400
 
-        # Spending limit
+        # Spending limit check
         ok, msg = enforce_spending_limit(sender_wallet, data.amount)
         warnings = []
         if not ok:
@@ -53,9 +60,8 @@ def domestic_transfer():
             warnings.append(msg)
 
         # Fraud detection
-        recent_transactions = session.query(Transaction).filter_by(user_id=sender.id).all()
-        is_fraud, reasons = is_transaction_suspicious(sender, data.amount, recent_transactions, session)
-
+        
+        is_fraud, reasons = is_transaction_suspicious(sender, data.amount, session)
         if is_fraud:
             reason_text = "; ".join(reasons)
             session.add(FraudLog(user_id=sender.id, reason=reason_text))
@@ -92,7 +98,7 @@ def domestic_transfer():
         session.commit()
 
         send_mock_notification(sender.id, f"You sent {data.amount} {sender_wallet.currency} to {recipient.email}")
-        send_mock_notification(recipient.id, f"You received {converted_amount} {recipient_wallet.currency} from {sender.email}")
+        send_mock_notification(recipient.id, f"You received {data.amount} {recipient_wallet.currency} from {sender.email}")
 
         return jsonify({
             "msg": "Transfer successful",
@@ -107,6 +113,7 @@ def domestic_transfer():
         return jsonify({"msg": "Transfer failed", "error": str(e)}), 500
     finally:
         session.close()
+
 
 @transfer_bp.route('/schedule', methods=['POST'])
 @jwt_required()

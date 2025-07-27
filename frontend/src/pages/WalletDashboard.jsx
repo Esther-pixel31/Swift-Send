@@ -71,7 +71,7 @@ export default function WalletDashboard() {
 
   return (
     <div className="space-y-10">
-      <h2 className="text-2xl font-semibold">Hi, {userName}</h2>
+      <h2 className="text-2xl font-semibold">Hi, {userName} 👋</h2>
 
       {/* Wallet Card */}
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl p-4 w-80 shadow-lg h-40 flex flex-col justify-between">
