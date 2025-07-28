@@ -14,6 +14,8 @@ from ..models.fx_rate import FXRate
 from ..models.audit_log import AuditLog
 from ..models.support_ticket import SupportTicket
 from ..models.kyc import KYC
+from flask import request
+from datetime import datetime
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -412,3 +414,34 @@ def respond_to_ticket(ticket_id):
 
     session.close()
     return jsonify({"msg": "Ticket updated"}), 200
+
+@admin_bp.route('/login', methods=['POST'])
+def admin_login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+
+    session = SessionLocal()
+    try:
+        user = session.query(User).filter_by(email=email).first()
+        if user and user.check_password(password):
+            if user.role != 'admin':
+                return jsonify({"msg": "Unauthorized"}), 403
+            if not user.is_active:
+                return jsonify({"msg": "Your account is suspended"}), 403
+
+            claims = {
+                "email": user.email,
+                "name": user.name,
+                "role": user.role
+            }
+            access_token = create_access_token(identity=user.id, additional_claims=claims)
+            refresh_token = create_refresh_token(identity=user.id)
+
+            return jsonify({
+                "access_token": access_token,
+                "refresh_token": refresh_token
+            }), 200
+        return jsonify({"msg": "Invalid credentials"}), 401
+    finally:
+        session.close()
