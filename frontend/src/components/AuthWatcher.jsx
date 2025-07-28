@@ -14,7 +14,7 @@ export default function AuthWatcher() {
   const accessToken = useSelector((state) => state.auth.accessToken);
   const refreshToken = useSelector((state) => state.auth.refreshToken);
 
-  const publicRoutes = ['/login', '/register', '/verify-otp'];
+  const publicRoutes = ['/login', '/register', '/verify-otp', '/admin/login'];
 
   useEffect(() => {
     const storedAccess = localStorage.getItem('accessToken');
@@ -36,13 +36,23 @@ export default function AuthWatcher() {
       return;
     }
 
-    // 🔐 Redirect to OTP page if not verified
     try {
       const decoded = jwtDecode(accessToken);
-      const { otp_verified, exp } = decoded;
+      const { otp_verified, exp, role } = decoded;
 
+      // Redirect to OTP verification if required
       if (!otp_verified && location.pathname !== '/verify-otp') {
         navigate('/verify-otp');
+        return;
+      }
+
+      // ✅ Redirect to role-specific dashboard after login or hydration
+      if (['/login', '/register', '/', '/admin/login'].includes(location.pathname)) {
+        if (role === 'admin') {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
         return;
       }
 
@@ -55,7 +65,6 @@ export default function AuthWatcher() {
       }, delay);
 
       return () => clearTimeout(timeoutId);
-
     } catch {
       dispatch(logout());
       navigate('/login');

@@ -26,6 +26,19 @@ export const register = createAsyncThunk('auth/register', async (payload, thunkA
   }
 });
 
+// ADMIN LOGIN
+export const adminLogin = createAsyncThunk('auth/adminLogin', async (payload, thunkAPI) => {
+  try {
+    const res = await axios.post('/admin/login', payload);
+    localStorage.setItem('accessToken', res.data.access_token);
+    localStorage.setItem('refreshToken', res.data.refresh_token);
+    return res.data;
+  } catch (err) {
+    return thunkAPI.rejectWithValue(err.response?.data || { msg: 'Server error' });
+  }
+});
+
+
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
@@ -93,8 +106,32 @@ const authSlice = createSlice({
           type: 'register',
           message: action.payload?.msg || 'Registration failed'
         };
-      });
+      })
+          .addCase(adminLogin.pending, (state) => {
+      state.status = 'loading';
+      state.error = null;
+    })
+    .addCase(adminLogin.fulfilled, (state, action) => {
+      state.status = 'succeeded';
+      state.accessToken = action.payload.access_token;
+      state.refreshToken = action.payload.refresh_token;
+      try {
+        state.user = jwtDecode(action.payload.access_token);
+      } catch {
+        state.user = null;
+      }
+      state.error = null;
+    })
+    .addCase(adminLogin.rejected, (state, action) => {
+      state.status = 'failed';
+      state.error = {
+        type: 'adminLogin',
+        message: action.payload?.msg || 'Admin login failed'
+      };
+    });
+
   },
+
 });
 
 export const { logout, setAuthFromStorage } = authSlice.actions;

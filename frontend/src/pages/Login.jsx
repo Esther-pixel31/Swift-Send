@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { login } from '../features/auth/authSlice';
 import { useNavigate, Link } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -12,14 +13,26 @@ export default function Login() {
   const { error } = useSelector((state) => state.auth);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    const result = await dispatch(login({ email, password }));
-    if (result.meta.requestStatus === 'fulfilled') {
-      navigate('/dashboard');
-    } else if (result.payload?.msg === 'OTP verification required') {
+  e.preventDefault();
+  const result = await dispatch(login({ email, password }));
+
+  if (result.meta.requestStatus === 'fulfilled') {
+    const token = result.payload?.access_token;
+    const decoded = jwtDecode(token);
+
+    if (decoded?.role === 'admin') {
+      navigate('/admin/dashboard');
+    } else if (!decoded?.otp_verified) {
       navigate('/verify-otp');
+    } else {
+      navigate('/dashboard');
     }
-  };
+
+  } else {
+    toast.error(result.payload?.msg || 'Login failed');
+  }
+};
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-bgLight px-4">
@@ -65,9 +78,12 @@ export default function Login() {
             Sign Up
           </Link>
         </p>
-          <Link to="/admin/login" className="text-primary hover:underline font-medium">
-            Admin Login
-          </Link>
+          <p className="text-sm text-center text-textGray mt-4">
+            Are you an admin?{' '}
+            <Link to="/admin/login" className="text-primary hover:underline font-medium">
+              Admin Login
+            </Link>
+          </p>
           
         
       </div>
