@@ -31,7 +31,7 @@ def create_app(testing=False):  # Accept a testing parameter
         'script-src': "'self'",
         'style-src': "'self'",
     }
-)
+)       
     
     # Rate Limiter
     limiter = Limiter(get_remote_address, app=app, default_limits=["100 per hour"])

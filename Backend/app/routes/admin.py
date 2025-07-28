@@ -131,9 +131,24 @@ def list_pending_kycs():
     session = SessionLocal()
     try:
         pending_docs = session.query(KYC).filter_by(status='pending').all()
-        return jsonify([doc.to_dict() for doc in pending_docs]), 200
+
+        results = []
+        for doc in pending_docs:
+            user = session.query(User).get(doc.user_id)
+            results.append({
+                "id": doc.id,
+                "user_id": doc.user_id,
+                "document_type": doc.document_type,
+                "file_path": doc.file_path,
+                "created_at": doc.created_at.isoformat() if doc.created_at else None,
+                "user_name": user.name if user else None,
+                "user_email": user.email if user else None,
+            })
+
+        return jsonify(results), 200
     finally:
         session.close()
+
 
 
 @admin_bp.route('/users', methods=['GET'])
@@ -149,8 +164,9 @@ def get_all_users():
             "email": u.email,
             "is_active": u.is_active,
             "kyc_status": u.kyc_status,
+            "role": u.role,
             "is_verified": u.is_verified,
-            "created_at": u.created_at.isoformat()
+            "created_at": u.created_at.isoformat() if u.created_at else None
         } for u in users]), 200
     finally:
         session.close()
@@ -416,6 +432,8 @@ def respond_to_ticket(ticket_id):
     return jsonify({"msg": "Ticket updated"}), 200
 
 @admin_bp.route('/login', methods=['POST'])
+@jwt_required()
+@admin_required
 def admin_login():
     data = request.get_json()
     email = data.get('email')

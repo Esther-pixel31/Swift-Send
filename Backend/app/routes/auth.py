@@ -59,9 +59,6 @@ def register():
     finally:
         session.close()
 
-
-
-
 @auth_bp.route('/login', methods=['POST'])
 def login():
     try:
@@ -84,6 +81,7 @@ def login():
             claims = {
                 "email": user.email,
                 "name": user.name,
+                "role": user.role,
                 "otp_verified": user.otp_verified,
                 "card_number": user.card_number,
                 "card_expiry": user.card_expiry,

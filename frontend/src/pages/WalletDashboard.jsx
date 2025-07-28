@@ -7,6 +7,8 @@ import { toast } from 'react-toastify';
 import DepositModal from '../components/DepositModal';
 import WithdrawModal from '../components/WithdrawModal';
 import SetLimitModal from '../components/SetLimitModal';
+import { Navigate } from 'react-router-dom';
+
 
 const actionCards = [
   { label: 'Deposit', icon: Banknote, bg: 'bg-green-100', color: 'text-green-600', action: 'deposit' },
@@ -93,6 +95,14 @@ export default function WalletDashboard() {
     navigator.clipboard.writeText(details);
     toast.success("Card details copied");
   };
+
+  const user = useSelector((state) => state.auth.user);
+
+    if (user?.role !== 'user') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+
+
 
   return (
     <div className="space-y-10">
