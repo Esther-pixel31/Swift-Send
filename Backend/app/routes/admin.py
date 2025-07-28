@@ -14,6 +14,9 @@ from ..models.fx_rate import FXRate
 from ..models.audit_log import AuditLog
 from ..models.support_ticket import SupportTicket
 from ..models.kyc import KYC
+from app.utils.mock_notify import send_mock_notification
+from sqlalchemy.orm.exc import NoResultFound
+from flask import abort
 from flask import request
 from datetime import datetime
 
@@ -179,19 +182,25 @@ def get_all_users():
 def get_all_wallets():
     session = SessionLocal()
     try:
-        wallets = session.query(Wallet).all()
-        return jsonify([{
-            "id": w.id,
-            "user_id": w.user_id,
-            "balance": float(w.balance),
-            "currency": w.currency,
-            "daily_limit": float(w.daily_limit or 0),
-            "monthly_limit": float(w.monthly_limit or 0),
-            "budget": float(w.budget or 0)
-        } for w in wallets]), 200
+        wallets = session.query(Wallet).join(Wallet.user).all()
+        return jsonify([
+            {
+                "id": w.id,
+                "user_id": w.user_id,
+                "user_email": w.user.email,
+                "balance": float(w.balance),
+                "currency": w.currency,
+                "spending_limit": float(w.spending_limit or 0),
+                "budget": float(w.budget or 0),
+                "daily_limit": float(w.daily_limit or 0),
+                "monthly_limit": float(w.monthly_limit or 0),
+                "daily_spent": float(w.daily_spent or 0),
+                "monthly_spent": float(w.monthly_spent or 0),
+                "last_spending_reset": w.last_spending_reset.isoformat() if w.last_spending_reset else None
+            } for w in wallets
+        ]), 200
     finally:
         session.close()
-
 
 
 @admin_bp.route('/dashboard/metrics', methods=['GET'])
@@ -288,7 +297,7 @@ def delete_fx_rate(fx_id):
 def get_audit_logs():
     session = SessionLocal()
     try:
-        logs = session.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(100).all()
+        logs = session.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(100).all()
         return jsonify([log.serialize() for log in logs]), 200
     finally:
         session.close()
@@ -388,48 +397,73 @@ def delete_wallet(wallet_id):
 @admin_required
 def list_all_tickets():
     session = SessionLocal()
-    tickets = session.query(SupportTicket).order_by(SupportTicket.created_at.desc()).all()
+
+    page = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per_page", 10))
+    status = request.args.get("status", "")
+    search = request.args.get("search", "")
+
+    query = session.query(SupportTicket)
+
+    if status:
+        query = query.filter(SupportTicket.status == status)
+
+    if search:
+        query = query.filter(SupportTicket.subject.ilike(f"%{search}%"))
+
+    total = query.count()
+    tickets = query.order_by(SupportTicket.created_at.desc()) \
+                   .offset((page - 1) * per_page) \
+                   .limit(per_page) \
+                   .all()
+
     output = []
     for t in tickets:
         ticket_data = t.serialize()
-        ticket_data["user_email"] = t.user.email  # 👈 Add this
+        ticket_data["user_email"] = t.user.email
         output.append(ticket_data)
+
     session.close()
-    return jsonify(output), 200
+    return jsonify({
+        "tickets": output,
+        "total": total,
+        "page": page,
+        "per_page": per_page
+    }), 200
 
 
 @admin_bp.route("/support/tickets/<int:ticket_id>", methods=["PUT"])
 @jwt_required()
 @admin_required
-def respond_to_ticket(ticket_id):
-    data = request.get_json()
-    status = data.get("status")
-    response = data.get("response")
-
+def update_support_ticket(ticket_id):
     session = SessionLocal()
-    ticket = session.query(SupportTicket).get(ticket_id)
+    try:
+        ticket = session.get(SupportTicket, ticket_id)
+        if ticket is None:
+            abort(404, description="Ticket not found")
+    except Exception as e:
+        print("Error retrieving ticket:", e)
+        abort(500, description="Internal server error")
 
-    if not ticket:
-        session.close()
-        return jsonify({"msg": "Ticket not found"}), 404
+    data = request.get_json() or {}
+    updated = False
 
-    if status:
-        if status not in VALID_STATUSES:
-            session.close()
-            return jsonify({"msg": "Invalid status"}), 400
-        ticket.status = status
+    if "status" in data:
+        ticket.status = data["status"]
+        updated = True
 
-    if response:
-        ticket.response = response
+    if "response" in data:
+        ticket.response = data["response"]
+        ticket.updated_at = datetime.utcnow()
+        updated = True
 
-    session.commit()
+    if updated:
+        session.commit()
+        return jsonify({"msg": "Ticket updated"}), 200
+    else:
+        return jsonify({"msg": "No data to update"}), 400
 
-    # 🟢 Mock notification
-    from app.utils.mock_notify import send_mock_notification
-    send_mock_notification(ticket.user_id, f"Your ticket '{ticket.subject}' has been updated: {status or 'response added'}")
 
-    session.close()
-    return jsonify({"msg": "Ticket updated"}), 200
 
 @admin_bp.route('/login', methods=['POST'])
 @jwt_required()

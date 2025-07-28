@@ -9,13 +9,28 @@ export default function UploadKycDocument({ onUploadSuccess }) {
   const [uploading, setUploading] = useState(false);
 
   const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
+    const selectedFile = e.target.files[0];
+    if (!selectedFile) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
+    if (!allowedTypes.includes(selectedFile.type)) {
+      toast.error("Only JPG, PNG, or PDF files are allowed.");
+      return;
+    }
+
+    const maxSizeMB = 5;
+    if (selectedFile.size > maxSizeMB * 1024 * 1024) {
+      toast.error("File size exceeds 5MB.");
+      return;
+    }
+
+    setFile(selectedFile);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!file || !documentType || !documentNumber) {
+    if (!file || !documentType || !documentNumber.trim()) {
       toast.error("All fields are required.");
       return;
     }
@@ -27,11 +42,11 @@ export default function UploadKycDocument({ onUploadSuccess }) {
 
     try {
       setUploading(true);
-      const res = await axios.post("/kyc/upload", formData, {
+      await axios.post("/kyc/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       toast.success("Document uploaded successfully.");
-      onUploadSuccess(); // Refresh profile
+      onUploadSuccess();
     } catch (err) {
       console.error("Upload error", err);
       toast.error("Failed to upload document.");
@@ -47,7 +62,12 @@ export default function UploadKycDocument({ onUploadSuccess }) {
     >
       <h3 className="font-semibold text-lg">Upload KYC Document</h3>
 
-      <input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={handleFileChange} />
+      <input
+        type="file"
+        accept=".jpg,.jpeg,.png,.pdf"
+        onChange={handleFileChange}
+        className="block w-full"
+      />
 
       <input
         type="text"
@@ -69,8 +89,8 @@ export default function UploadKycDocument({ onUploadSuccess }) {
 
       <button
         type="submit"
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         disabled={uploading}
+        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
       >
         {uploading ? "Uploading..." : "Upload Document"}
       </button>

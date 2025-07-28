@@ -78,13 +78,6 @@ export default function Login() {
             Sign Up
           </Link>
         </p>
-          <p className="text-sm text-center text-textGray mt-4">
-            Are you an admin?{' '}
-            <Link to="/admin/login" className="text-primary hover:underline font-medium">
-              Admin Login
-            </Link>
-          </p>
-          
         
       </div>
     </div>

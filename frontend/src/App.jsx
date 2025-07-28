@@ -29,6 +29,10 @@ import AdminLogin from './pages/Admin/AdminLogin';
 import AdminLayout from './components/admin/AdminLayout';
 import AdminUsers from './pages/Admin/AdminUsers';
 import AdminKYC from './pages/Admin/AdminKYC';
+import AdminSupport from './pages/Admin/AdminSupport';
+import AdminWallets from './pages/Admin/AdminWallets';
+import AdminFxRates from './pages/Admin/AdminFxRates';
+import AdminAuditLogs from './pages/Admin/AdminAuditLogs';
 import { useSelector } from 'react-redux';
 
 export default function App() {
@@ -80,6 +84,10 @@ export default function App() {
           <Route path="users" element={<AdminUsers />} />
           <Route path="login" element={<AdminLogin />} />
           <Route path="kyc" element={<AdminKYC />} />
+          <Route path="support" element={<AdminSupport />} />
+          <Route path="wallets" element={<AdminWallets />} />
+          <Route path="fx-rates" element={<AdminFxRates />} />
+          <Route path="audit-logs" element={<AdminAuditLogs />} />
 
           {/* Add more admin routes here */}
         </Route>
