@@ -9,7 +9,7 @@ import uuid
 
 kyc_bp = Blueprint('kyc', __name__)
 
-UPLOAD_FOLDER = 'uploads'
+UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
 ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png'}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
