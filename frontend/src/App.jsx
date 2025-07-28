@@ -41,6 +41,10 @@ import ChangePassword from "./pages/ChangePassword";
           <Route path="/edit-profile" element={<EditProfile />} />
           <Route path="/change-password" element={<ChangePassword />} />
         </Route>
+        <Route path ="/" element={ <AdminDashboard />}>
+          <Route path="admin/login" element={<AdminLogin />} />
+          <Route path="admin/dashboard" element={<AdminDashboard />} />
+        </Route>
       </Routes>
       <ToastContainer position="top-center" autoClose={4000} />
     </Router>

@@ -65,6 +65,11 @@ export default function Login() {
             Sign Up
           </Link>
         </p>
+          <Link to="/admin/login" className="text-primary hover:underline font-medium">
+            Admin Login
+          </Link>
+          
+        
       </div>
     </div>
   );
