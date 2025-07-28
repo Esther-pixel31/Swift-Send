@@ -6,10 +6,16 @@ export default function WithdrawModal({ onClose, fetchWallet }) {
   const [amount, setAmount] = useState('');
 
   const handleWithdraw = async () => {
+    const numericAmount = parseFloat(amount);
+    if (!numericAmount || numericAmount <= 0) {
+      toast.error('Enter a valid withdrawal amount.');
+      return;
+    }
+
     try {
-      await axios.post('/wallet/withdraw', { amount: parseFloat(amount) });
+      await axios.post('/wallet/withdraw', { amount: numericAmount });
       toast.success('Withdrawal successful');
-      fetchWallet(); // Update wallet balance
+      fetchWallet(); // Refresh balance
       onClose();
     } catch (error) {
       toast.error('Withdrawal failed');
@@ -29,7 +35,13 @@ export default function WithdrawModal({ onClose, fetchWallet }) {
         />
         <div className="flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
-          <button onClick={handleWithdraw} className="px-4 py-2 bg-red-500 text-white rounded">Withdraw</button>
+          <button
+            onClick={handleWithdraw}
+            disabled={!amount || parseFloat(amount) <= 0}
+            className="px-4 py-2 bg-red-500 text-white rounded disabled:opacity-50"
+          >
+            Withdraw
+          </button>
         </div>
       </div>
     </div>
