@@ -416,6 +416,8 @@ def respond_to_ticket(ticket_id):
     return jsonify({"msg": "Ticket updated"}), 200
 
 @admin_bp.route('/login', methods=['POST'])
+@jwt_required()
+@admin_required
 def admin_login():
     data = request.get_json()
     email = data.get('email')
