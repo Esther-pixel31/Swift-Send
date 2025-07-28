@@ -1,9 +1,9 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_from_directory, url_for
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 from ..models.kyc import KYC
 from ..db.session import SessionLocal
-from ..utils.encryption import encrypt_data  
+from ..utils.encryption import encrypt_data, decrypt_data
 import os
 import uuid
 
@@ -11,7 +11,6 @@ kyc_bp = Blueprint('kyc', __name__)
 
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png'}
-
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
@@ -45,7 +44,7 @@ def upload_document():
     session = SessionLocal()
 
     try:
-        encrypted_number = encrypt_data(document_number)  
+        encrypted_number = encrypt_data(document_number)
 
         kyc_doc = KYC(
             user_id=user_id,
@@ -75,18 +74,24 @@ def get_kyc_status():
         if not kyc_doc:
             return jsonify({"status": "not_submitted"}), 200
 
+        file_url = url_for('kyc.serve_kyc_file', filename=os.path.basename(kyc_doc.file_path), _external=True)
+
         response = {
             "status": kyc_doc.status,
             "document_type": kyc_doc.document_type,
             "document_number": decrypt_data(kyc_doc.document_number),
             "reviewed_at": kyc_doc.reviewed_at,
             "reviewed_by": kyc_doc.reviewed_by,
+            "file_url": file_url
         }
 
         if kyc_doc.status == "rejected":
             response["rejection_reason"] = kyc_doc.rejection_reason
 
         return jsonify(response), 200
-
     finally:
         session.close()
+
+@kyc_bp.route('/uploads/<filename>')
+def serve_kyc_file(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename)

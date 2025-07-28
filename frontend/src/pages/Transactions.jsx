@@ -6,13 +6,29 @@ export default function Transactions() {
   const [txns, setTxns] = useState([]);
   const [loading, setLoading] = useState(false);
   const [dropdown, setDropdown] = useState(false);
+  const [typeFilter, setTypeFilter] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const fetchFilteredTransactions = async () => {
+    setLoading(true);
+    try {
+      const params = {
+        ...(typeFilter && { type: typeFilter }),
+        ...(startDate && { start: startDate }),
+        ...(endDate && { end: endDate }),
+      };
+      const res = await fetchTransactions(params);
+      setTxns(res.data);
+    } catch {
+      toast.error('Failed to fetch transactions');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setLoading(true);
-    fetchTransactions()
-      .then(res => setTxns(res.data))
-      .catch(() => toast.error('Failed to fetch transactions'))
-      .finally(() => setLoading(false));
+    fetchFilteredTransactions();
   }, []);
 
   const handleDownload = async (format) => {
@@ -41,7 +57,6 @@ export default function Transactions() {
           >
             Download ▼
           </button>
-
           {dropdown && (
             <div className="absolute right-0 mt-2 bg-white border shadow rounded w-32 z-10">
               <button onClick={() => handleDownload('csv')} className="w-full text-left px-4 py-2 hover:bg-gray-100">CSV</button>
@@ -49,6 +64,17 @@ export default function Transactions() {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="flex gap-4">
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="border rounded px-2 py-1">
+          <option value="">All Types</option>
+          <option value="credit">Credit</option>
+          <option value="debit">Debit</option>
+        </select>
+        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="border rounded px-2 py-1" />
+        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="border rounded px-2 py-1" />
+        <button onClick={fetchFilteredTransactions} className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700">Filter</button>
       </div>
 
       {loading ? (

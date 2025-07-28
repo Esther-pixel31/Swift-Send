@@ -17,6 +17,9 @@ import Transactions from './pages/Transactions';
 import Transfer from './pages/Transfer';
 import Support from './pages/Support';
 import Dashboard from './pages/Dashboard';
+import Profie from './pages/Profile';
+import EditProfile from "./pages/EditProfile";
+import ChangePassword from "./pages/ChangePassword";
 
  export default function App() {
   return (
@@ -33,7 +36,14 @@ import Dashboard from './pages/Dashboard';
           <Route path="beneficiaries" element={<Beneficiaries />} />
           <Route path="transactions" element={<Transactions />} /> 
           <Route path="transfer" element={<Transfer />} />         
-          <Route path="support" element={<Support />} />         
+          <Route path="support" element={<Support />} />
+          <Route path="profile" element={<Profie />} />
+          <Route path="/edit-profile" element={<EditProfile />} />
+          <Route path="/change-password" element={<ChangePassword />} />
+        </Route>
+        <Route path ="/" element={ <AdminDashboard />}>
+          <Route path="admin/login" element={<AdminLogin />} />
+          <Route path="admin/dashboard" element={<AdminDashboard />} />
         </Route>
       </Routes>
       <ToastContainer position="top-center" autoClose={4000} />

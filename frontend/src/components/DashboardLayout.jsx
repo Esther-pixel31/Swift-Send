@@ -2,8 +2,15 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../features/auth/authSlice';
 import { Menu, Bell, LogOut, Wallet, Users, Send, FileText, LifeBuoy } from 'lucide-react';
+import { Link } from "react-router-dom";
+
+
+
 
 export default function DashboardLayout() {
+  const user = useSelector((state) => state.auth.user);
+  const avatarSeed = encodeURIComponent(user?.name || user?.email || "user");
+  const avatarUrl = `https://api.dicebear.com/7.x/adventurer/svg?seed=${avatarSeed}`;
   const { accessToken } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -93,7 +100,16 @@ export default function DashboardLayout() {
             <button className="text-textGray hover:text-primary">
               <Bell size={20} />
             </button>
-            <div className="w-8 h-8 bg-gray-300 rounded-full" />
+
+            {/* Make avatar clickable */}
+            <Link to="/profile">
+        <img
+          src={avatarUrl}
+          alt="User Avatar"
+          className="w-8 h-8 rounded-full border shadow cursor-pointer hover:ring-2 ring-primary transition"
+        />
+      </Link>
+
           </div>
         </header>
 

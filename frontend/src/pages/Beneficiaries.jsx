@@ -11,6 +11,7 @@ export default function Beneficiaries() {
   const [beneficiaries, setBeneficiaries] = useState([]);
   const [form, setForm] = useState({
     name: '',
+    email: '',
     phone_number: '',
     bank_account_number: '',
     bank_name: '',
@@ -24,7 +25,7 @@ export default function Beneficiaries() {
     setLoading(true);
     try {
       const res = await getBeneficiaries();
-      setBeneficiaries(res.data);
+      setBeneficiaries(res.data || []);
     } catch {
       toast.error('Failed to load beneficiaries');
     } finally {
@@ -50,11 +51,32 @@ export default function Beneficiaries() {
         bank_account_number: '',
         bank_name: '',
         group: '',
+        currency: 'KES',
         is_favorite: false,
       });
       loadBeneficiaries();
     } catch {
       toast.error('Failed to add beneficiary');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this beneficiary?')) return;
+    try {
+      await deleteBeneficiary(id);
+      toast.success('Beneficiary deleted');
+      loadBeneficiaries();
+    } catch {
+      toast.error('Failed to delete beneficiary');
+    }
+  };
+
+  const handleToggleFavorite = async (id) => {
+    try {
+      await toggleFavorite(id);
+      loadBeneficiaries();
+    } catch {
+      toast.error('Failed to update favorite');
     }
   };
 
@@ -95,8 +117,8 @@ export default function Beneficiaries() {
                 <p className="text-sm text-gray-500">Account: {b.bank_account_number || 'N/A'} | Bank: {b.bank_name || 'N/A'} | Group: {b.group || 'N/A'}</p>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => toggleFavorite(b.id)} className="text-yellow-500">★</button>
-                <button onClick={() => deleteBeneficiary(b.id)} className="text-red-500">🗑</button>
+                <button onClick={() => handleToggleFavorite(b.id)} className="text-yellow-500">★</button>
+                <button onClick={() => handleDelete(b.id)} className="text-red-500">🗑</button>
               </div>
             </div>
           ))

@@ -3,8 +3,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.exc import SQLAlchemyError
 from ..db.session import SessionLocal
 from ..models.user import User
-from ..utils.auth import active_required # ✅ add this import
-
+from ..utils.encryption import decrypt_cvc
+from ..utils.auth import active_required
 
 user_bp = Blueprint('user', __name__)
 
@@ -28,9 +28,13 @@ def get_current_user():
             "id": user.id,
             "name": user.name,
             "email": user.email,
+            "phone_number": user.phone_number,
             "card_number": user.card_number,
             "card_expiry": user.card_expiry,
-            "card_cvc": decrypted_cvc,
+            "card_cvc": decrypted_cvc,  # ✅ Use decrypted value
+            "role": user.role,
+            "is_verified": user.is_verified,
+            "kyc_status": user.kyc_status,
             "created_at": user.created_at.isoformat()
         }), 200
     finally:
