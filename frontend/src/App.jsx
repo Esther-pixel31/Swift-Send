@@ -28,6 +28,7 @@ import AdminDashboard from './pages/Admin/AdminDashboard';
 import AdminLogin from './pages/Admin/AdminLogin';
 import AdminLayout from './components/admin/AdminLayout';
 import AdminUsers from './pages/Admin/AdminUsers';
+import AdminKYC from './pages/Admin/AdminKYC';
 import { useSelector } from 'react-redux';
 
 export default function App() {
@@ -78,6 +79,7 @@ export default function App() {
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="login" element={<AdminLogin />} />
+          <Route path="kyc" element={<AdminKYC />} />
 
           {/* Add more admin routes here */}
         </Route>

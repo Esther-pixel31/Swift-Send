@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react';
-import { fetchAllUsers, updateUser, deleteUser } from '../../api/admin';
+import axios from '../../utils/axiosInstance';
 import { toast } from 'react-toastify';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const loadUsers = async () => {
-    setLoading(true);
+  const fetchUsers = async () => {
     try {
-      const res = await fetchAllUsers();
+      const res = await axios.get('/admin/users');
       setUsers(res.data);
     } catch {
       toast.error('Failed to load users');
@@ -18,69 +17,92 @@ export default function AdminUsers() {
     }
   };
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const handleToggleStatus = async (user) => {
+  const handleReactivate = async (id) => {
     try {
-      await updateUser(user.id, { is_active: !user.is_active });
-      toast.success(`${user.name} ${user.is_active ? 'deactivated' : 'reactivated'}`);
-      loadUsers();
+      await axios.post(`/admin/users/${id}/reactivate`);
+      toast.success('User reactivated');
+      fetchUsers();
     } catch {
-      toast.error('Update failed');
+      toast.error('Failed to reactivate user');
+    }
+  };
+
+  const handleUpdate = async (id, updates) => {
+    try {
+      await axios.put(`/admin/users/${id}`, updates);
+      toast.success('User updated');
+      fetchUsers();
+    } catch {
+      toast.error('Failed to update user');
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    const confirmed = window.confirm('Are you sure you want to delete this user?');
+    if (!confirmed) return;
+
     try {
-      await deleteUser(id);
+      await axios.delete(`/admin/users/${id}`);
       toast.success('User deleted');
-      loadUsers();
+      fetchUsers();
     } catch {
-      toast.error('Delete failed');
+      toast.error('Failed to delete user');
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">All Users</h1>
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <table className="w-full bg-white rounded-xl shadow overflow-hidden">
-          <thead className="bg-gray-100 text-left text-sm">
+  if (loading) return <p>Loading users...</p>;
+
+  return (
+    <div className="p-6 space-y-6">
+      <h2 className="text-2xl font-semibold">All Users</h2>
+      <div className="overflow-auto">
+        <table className="min-w-full border">
+          <thead className="bg-gray-100 text-sm">
             <tr>
-              <th className="p-3">Name</th>
-              <th className="p-3">Email</th>
-              <th className="p-3">KYC</th>
-              <th className="p-3">Verified</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Actions</th>
+              <th className="p-2 border">Name</th>
+              <th className="p-2 border">Email</th>
+              <th className="p-2 border">Status</th>
+              <th className="p-2 border">Role</th>
+              <th className="p-2 border">KYC</th>
+              <th className="p-2 border">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
-              <tr key={u.id} className="border-t text-sm hover:bg-gray-50">
-                <td className="p-3">{u.name}</td>
-                <td className="p-3">{u.email}</td>
-                <td className="p-3">{u.kyc_status}</td>
-                <td className="p-3">{u.is_verified ? '✅' : '❌'}</td>
-                <td className="p-3">{u.is_active ? 'Active' : 'Suspended'}</td>
-                <td className="p-3 space-x-2">
+            {users.map(u => (
+              <tr key={u.id} className="text-sm text-center">
+                <td className="p-2 border">{u.name}</td>
+                <td className="p-2 border">{u.email}</td>
+                <td className="p-2 border">
+                  {u.is_active ? '✅ Active' : '❌ Suspended'}
+                </td>
+                <td className="p-2 border">{u.role}</td>
+                <td className="p-2 border">{u.kyc_status}</td>
+                <td className="p-2 border space-x-2">
+                  {!u.is_active && (
+                    <button
+                      onClick={() => handleReactivate(u.id)}
+                      className="text-green-600 hover:underline"
+                    >
+                      Reactivate
+                    </button>
+                  )}
                   <button
-                    onClick={() => handleToggleStatus(u)}
-                    className={`px-2 py-1 rounded text-xs ${
-                      u.is_active ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
-                    }`}
+                    onClick={() =>
+                      handleUpdate(u.id, {
+                        role: u.role === 'admin' ? 'user' : 'admin',
+                      })
+                    }
+                    className="text-blue-600 hover:underline"
                   >
-                    {u.is_active ? 'Suspend' : 'Reactivate'}
+                    Make {u.role === 'admin' ? 'User' : 'Admin'}
                   </button>
                   <button
                     onClick={() => handleDelete(u.id)}
-                    className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-700"
+                    className="text-red-600 hover:underline"
                   >
                     Delete
                   </button>
@@ -89,7 +111,8 @@ export default function AdminUsers() {
             ))}
           </tbody>
         </table>
-      )}
+      </div>
     </div>
   );
 }
+ ;
