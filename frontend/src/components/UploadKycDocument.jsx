@@ -38,17 +38,21 @@ export default function UploadKycDocument({ onUploadSuccess }) {
     const formData = new FormData();
     formData.append("document", file);
     formData.append("document_type", documentType);
-    formData.append("document_number", documentNumber);
+    formData.append("document_number", documentNumber.trim());
 
     try {
       setUploading(true);
       await axios.post("/kyc/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+
       toast.success("Document uploaded successfully.");
-      onUploadSuccess();
+      setFile(null);
+      setDocumentNumber("");
+      setDocumentType("passport");
+      onUploadSuccess?.();
     } catch (err) {
-      console.error("Upload error", err);
+      console.error("KYC upload failed:", err?.response || err);
       toast.error("Failed to upload document.");
     } finally {
       setUploading(false);
@@ -58,34 +62,43 @@ export default function UploadKycDocument({ onUploadSuccess }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-gray-50 border p-4 rounded-xl space-y-3 mt-6"
+      className="bg-gray-50 border border-gray-200 p-5 rounded-xl space-y-4 mt-6"
     >
-      <h3 className="font-semibold text-lg">Upload KYC Document</h3>
+      <h3 className="font-semibold text-lg text-gray-800">Upload KYC Document</h3>
 
-      <input
-        type="file"
-        accept=".jpg,.jpeg,.png,.pdf"
-        onChange={handleFileChange}
-        className="block w-full"
-      />
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-gray-700">Document File</label>
+        <input
+          type="file"
+          accept=".jpg,.jpeg,.png,.pdf"
+          onChange={handleFileChange}
+          className="w-full"
+        />
+      </div>
 
-      <input
-        type="text"
-        placeholder="Document Number"
-        className="w-full border px-3 py-2 rounded"
-        value={documentNumber}
-        onChange={(e) => setDocumentNumber(e.target.value)}
-      />
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-gray-700">Document Number</label>
+        <input
+          type="text"
+          placeholder="e.g. A1234567"
+          className="w-full border px-3 py-2 rounded"
+          value={documentNumber}
+          onChange={(e) => setDocumentNumber(e.target.value)}
+        />
+      </div>
 
-      <select
-        value={documentType}
-        onChange={(e) => setDocumentType(e.target.value)}
-        className="w-full border px-3 py-2 rounded"
-      >
-        <option value="passport">Passport</option>
-        <option value="national_id">National ID</option>
-        <option value="driver_license">Driver's License</option>
-      </select>
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-gray-700">Document Type</label>
+        <select
+          value={documentType}
+          onChange={(e) => setDocumentType(e.target.value)}
+          className="w-full border px-3 py-2 rounded"
+        >
+          <option value="passport">Passport</option>
+          <option value="national_id">National ID</option>
+          <option value="driver_license">Driver's License</option>
+        </select>
+      </div>
 
       <button
         type="submit"

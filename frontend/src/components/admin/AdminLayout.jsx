@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../../features/auth/authSlice';
@@ -10,6 +11,7 @@ export default function AdminLayout() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     const confirmLogout = window.confirm("Are you sure you want to logout?");
@@ -30,9 +32,22 @@ export default function AdminLayout() {
   ];
 
   return (
-    <div className="min-h-screen flex bg-bgLight text-textDark">
+    <div className="min-h-screen flex flex-col md:flex-row bg-bgLight text-textDark">
+      {/* Mobile Menu Toggle Button */}
+      <button
+        className="md:hidden p-2 fixed top-4 left-4 z-50 bg-white border rounded shadow"
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        aria-label="Toggle Sidebar"
+      >
+        ☰
+      </button>
+
       {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-xl flex flex-col justify-between p-6">
+      <aside
+        className={`fixed top-0 left-0 z-40 h-full w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          md:translate-x-0 md:static md:flex md:flex-col md:justify-between p-6`}
+      >
         <div>
           <h2 className="text-xl font-bold mb-8">Admin Panel</h2>
           <nav className="space-y-2">
@@ -47,6 +62,7 @@ export default function AdminLayout() {
                       : 'text-textGray hover:bg-gray-100'
                   }`
                 }
+                onClick={() => setSidebarOpen(false)} // close on mobile click
               >
                 <Icon size={18} />
                 {label}
@@ -57,12 +73,12 @@ export default function AdminLayout() {
 
         <div className="mt-6 border-t pt-4 text-sm">
           <p className="text-textGray">Logged in as</p>
-          <p className="font-medium truncate">
+          <p className="font-medium truncate max-w-[160px]">
             {user?.email || 'Unknown user'}
           </p>
           <button
             onClick={handleLogout}
-            className="mt-2 flex gap-2 items-center text-red-500 hover:text-red-600 transition"
+            className="mt-2 flex gap-2 items-center text-red-500 hover:text-red-600 transition px-2 py-1"
           >
             <LogOut size={16} />
             Logout
@@ -71,7 +87,17 @@ export default function AdminLayout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto max-h-screen">
+  {/* Top bar */}
+  <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b bg-white sticky top-0 z-10">
+    <h1 className="text-lg font-semibold"></h1>
+    <div className="text-sm text-gray-600">
+      {user?.email}
+    </div>
+  </div>
+
+  
+
         <Outlet />
       </main>
     </div>

@@ -47,32 +47,73 @@ export default function Transfer() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <h2 className="text-2xl font-semibold">Send Money</h2>
+    <div className="p-6 space-y-6 max-w-3xl mx-auto">
+      <h2 className="text-2xl font-bold text-gray-800">💸 Send Money</h2>
 
-      <div className="grid md:grid-cols-2 gap-4">
-        <select value={form.receiver_email} onChange={e => setForm({ ...form, receiver_email: e.target.value })} className="input">
-          <option value="">Select Beneficiary</option>
-          {beneficiaries.map(b => (
-            <option key={b.id} value={b.email}>{b.name} ({b.currency})</option>
-          ))}
-        </select>
+      <div className="bg-white p-6 rounded-xl shadow space-y-4">
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Beneficiary Selector */}
+          <div>
+            <label className="block mb-1 text-sm font-medium text-gray-600">Select Beneficiary</label>
+            <select
+              value={form.receiver_email}
+              onChange={(e) => setForm({ ...form, receiver_email: e.target.value })}
+              className="input"
+            >
+              <option value="">-- Choose Beneficiary --</option>
+              {beneficiaries.map((b) => (
+                <option key={b.id} value={b.email}>
+                  {b.name} ({b.currency})
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <input type="number" placeholder="Amount" className="input"
-          value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
+          {/* Amount */}
+          <div>
+            <label className="block mb-1 text-sm font-medium text-gray-600">Amount</label>
+            <input
+              type="number"
+              placeholder="e.g. 1000"
+              className="input"
+              value={form.amount}
+              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+            />
+          </div>
 
-        <input type="text" placeholder="Note (optional)" className="input"
-          value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} />
+          {/* Note */}
+          <div className="md:col-span-2">
+            <label className="block mb-1 text-sm font-medium text-gray-600">Note (optional)</label>
+            <input
+              type="text"
+              placeholder="e.g. Rent payment"
+              className="input"
+              value={form.note}
+              onChange={(e) => setForm({ ...form, note: e.target.value })}
+            />
+          </div>
 
-        <select value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })} className="input">
-          <option value="KES">KES</option>
-          <option value="USD">USD</option>
-        </select>
+          {/* Currency */}
+          <div>
+            <label className="block mb-1 text-sm font-medium text-gray-600">Currency</label>
+            <select
+              value={form.currency}
+              onChange={(e) => setForm({ ...form, currency: e.target.value })}
+              className="input"
+            >
+              <option value="KES">KES</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Submit */}
+        <div className="pt-2">
+          <button onClick={handleSend} className="btn" disabled={loading}>
+            {loading ? 'Sending...' : 'Send'}
+          </button>
+        </div>
       </div>
-
-      <button onClick={handleSend} className="btn mt-2" disabled={loading}>
-        {loading ? 'Sending...' : 'Send'}
-      </button>
     </div>
   );
 }

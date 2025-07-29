@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from '../utils/axiosInstance';
 import { jwtDecode } from 'jwt-decode';
-import { Bell } from 'lucide-react';
 import { Line, Doughnut } from 'react-chartjs-2';
 import { toast } from 'react-toastify';
 import {
@@ -52,42 +51,53 @@ export default function Dashboard() {
 
   const spendingChart = {
     labels: transactions.map((t) => new Date(t.created_at).toLocaleDateString()).reverse(),
-    datasets: [{
-      label: 'KES Spent',
-      data: transactions.map((t) => t.amount).reverse(),
-      borderColor: '#6366F1',
-      fill: false,
-      tension: 0.3,
-    }],
+    datasets: [
+      {
+        label: 'KES Spent',
+        data: transactions.map((t) => t.amount).reverse(),
+        borderColor: '#6366F1',
+        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+      },
+    ],
   };
 
   const categoryChart = {
     labels: ['Transfer', 'Withdraw', 'Bill', 'Top-up'],
-    datasets: [{
-      label: 'Category Spend',
-      data: [2000, 1000, 1500, 500],
-      backgroundColor: ['#4F46E5', '#EF4444', '#10B981', '#F59E0B'],
-    }]
+    datasets: [
+      {
+        label: 'Category Spend',
+        data: [2000, 1000, 1500, 500],
+        backgroundColor: ['#4F46E5', '#EF4444', '#10B981', '#F59E0B'],
+        hoverOffset: 8,
+      },
+    ],
   };
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
+      {/* Greeting */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Hi, {userName} 👋</h2>
       </div>
 
-      {/* Balance Card */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl p-6 shadow-lg">
-        <p className="text-sm opacity-80">Current Balance</p>
-        <h3 className="text-3xl font-bold mt-1">{wallet.currency} {wallet.balance?.toFixed(2)}</h3>
-        <p className="text-sm mt-2 opacity-80">Last updated: just now</p>
-      </div>
+      {/* 2x2 Grid: Balance, Limits, Line Chart, Doughnut */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Balance Card */}
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl p-6 shadow">
+          <p className="text-sm opacity-80">Current Balance</p>
+          <h3 className="text-2xl font-bold mt-1">
+            {wallet.currency} {wallet.balance?.toFixed(2)}
+          </h3>
+          <p className="text-xs mt-2 opacity-80">Last updated: just now</p>
+        </div>
 
-      {/* Limit Progress */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white p-4 rounded-xl shadow space-y-2">
-          <p className="text-sm text-gray-500">Spending Limits</p>
+        {/* Spending Limits */}
+        <div className="bg-white p-6 rounded-xl shadow space-y-4">
+          <p className="text-sm text-gray-500 font-medium">Spending Limits</p>
           <div>
             <p className="text-xs">Daily</p>
             <div className="w-full bg-gray-200 h-2 rounded">
@@ -101,31 +111,33 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Charts */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white p-4 rounded-xl shadow">
+        {/* Line Chart */}
+        <div className="bg-white p-6 rounded-xl shadow">
           <h4 className="font-medium mb-2">Spending Trend</h4>
-          <Line data={spendingChart} />
+          <Line data={spendingChart} options={{ responsive: true, plugins: { legend: { display: false } } }} />
         </div>
-        <div className="bg-white p-4 rounded-xl shadow">
+
+        {/* Doughnut Chart */}
+        <div className="bg-white p-6 rounded-xl shadow">
           <h4 className="font-medium mb-2">Spending by Category</h4>
-          <Doughnut data={categoryChart} />
+          <Doughnut data={categoryChart} options={{ responsive: true, plugins: { legend: { position: 'right' } } }} />
         </div>
       </div>
 
-      {/* Transactions */}
-      <div className="bg-white p-4 rounded-xl shadow">
+      {/* Bottom Full Width Transactions Card */}
+      <div className="bg-white p-6 rounded-xl shadow">
         <h4 className="font-medium mb-3">Recent Transactions</h4>
         {transactions.length === 0 ? (
           <p className="text-gray-500 text-sm">No recent transactions.</p>
         ) : (
           <ul className="divide-y">
             {transactions.slice(0, 5).map((tx) => (
-              <li key={tx.id} className="flex justify-between py-2 text-sm">
-                <span>{tx.transaction_type}</span>
-                <span>{tx.amount} {tx.currency}</span>
+              <li key={tx.id} className="flex justify-between py-3 text-sm text-gray-700">
+                <span className="font-medium">{tx.transaction_type}</span>
+                <span>
+                  {tx.amount} {tx.currency}
+                </span>
                 <span className="text-gray-500">{new Date(tx.created_at).toLocaleDateString()}</span>
               </li>
             ))}

@@ -14,7 +14,7 @@ export default function AdminFxRates() {
     base_currency: '',
     target_currency: '',
     rate: '',
-    fee_percent: ''
+    fee_percent: '',
   });
 
   const fetchFxRates = async () => {
@@ -22,7 +22,7 @@ export default function AdminFxRates() {
     try {
       const res = await axios.get('/admin/fx-rates');
       setFxRates(res.data);
-    } catch (err) {
+    } catch {
       toast.error('Failed to load FX rates');
     } finally {
       setLoading(false);
@@ -58,7 +58,7 @@ export default function AdminFxRates() {
       base_currency: fx.base_currency,
       target_currency: fx.target_currency,
       rate: fx.rate,
-      fee_percent: fx.fee_percent
+      fee_percent: fx.fee_percent,
     });
     setIsModalOpen(true);
   };
@@ -81,14 +81,14 @@ export default function AdminFxRates() {
       base_currency: '',
       target_currency: '',
       rate: '',
-      fee_percent: ''
+      fee_percent: '',
     });
   };
 
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">FX Rates</h2>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-semibold text-gray-800">FX Rates</h2>
         <button
           onClick={() => {
             setEditingFx(null);
@@ -96,55 +96,61 @@ export default function AdminFxRates() {
               base_currency: '',
               target_currency: '',
               rate: '',
-              fee_percent: ''
+              fee_percent: '',
             });
             setIsModalOpen(true);
           }}
-          className="bg-green-600 text-white px-3 py-1 rounded flex items-center gap-1"
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2 text-sm"
         >
           <Plus size={16} /> New FX Rate
         </button>
       </div>
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <table className="min-w-full text-sm border">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-2 text-left">Base</th>
-              <th className="p-2 text-left">Target</th>
-              <th className="p-2">Rate</th>
-              <th className="p-2">Fee %</th>
-              <th className="p-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {fxRates.map((fx) => (
-              <tr key={fx.id} className="border-t">
-                <td className="p-2">{fx.base_currency}</td>
-                <td className="p-2">{fx.target_currency}</td>
-                <td className="p-2">{fx.rate}</td>
-                <td className="p-2">{fx.fee_percent}</td>
-                <td className="p-2 space-x-2">
-                  <button
-                    onClick={() => handleEdit(fx)}
-                    className="text-blue-600 hover:underline"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(fx.id)}
-                    className="text-red-600 hover:underline"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </td>
+      <div className="bg-white shadow rounded-lg overflow-x-auto">
+        {loading ? (
+          <p className="text-center text-gray-600 p-4">Loading FX rates...</p>
+        ) : fxRates.length === 0 ? (
+          <p className="text-center text-gray-500 p-4">No FX rates found.</p>
+        ) : (
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-100 text-gray-700 uppercase text-xs">
+              <tr>
+                <th className="p-3 text-left">Base</th>
+                <th className="p-3 text-left">Target</th>
+                <th className="p-3 text-left">Rate</th>
+                <th className="p-3 text-left">Fee %</th>
+                <th className="p-3 text-left">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody>
+              {fxRates.map((fx, index) => (
+                <tr key={fx.id} className={index % 2 === 0 ? 'bg-gray-50' : ''}>
+                  <td className="p-3 text-left">{fx.base_currency}</td>
+                  <td className="p-3 text-left">{fx.target_currency}</td>
+                  <td className="p-3 text-left">{fx.rate}</td>
+                  <td className="p-3 text-left">{fx.fee_percent}</td>
+                  <td className="p-3 text-left space-x-2">
+                    <button
+                      onClick={() => handleEdit(fx)}
+                      className="text-blue-600 hover:underline"
+                      title="Edit"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(fx.id)}
+                      className="text-red-600 hover:underline"
+                      title="Delete"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
       <FxRateModal
         isOpen={isModalOpen}
