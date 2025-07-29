@@ -1,10 +1,13 @@
 // src/pages/Login.jsx
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { login } from '../features/auth/authSlice';
+import { login, googleLogin } from '../features/auth/authSlice';
 import { useNavigate, Link } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
-import { toast } from 'react-toastify'; // ✅ Missing import
+import { toast } from 'react-toastify';
+import { GoogleLogin } from '@react-oauth/google';
+
+ // ✅ Missing import
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -14,16 +17,13 @@ export default function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { error } = useSelector((state) => state.auth);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    const result = await dispatch(login({ email, password }));
+  
+  const handleGoogleLogin = async (credentialResponse) => {
+  try {
+    const result = await dispatch(googleLogin({ credential: credentialResponse.credential }));
 
     if (result.meta.requestStatus === 'fulfilled') {
-      const token = result.payload?.access_token;
-      const decoded = jwtDecode(token);
+      const decoded = jwtDecode(result.payload.access_token);
 
       if (decoded?.role === 'admin') {
         navigate('/admin/dashboard');
@@ -32,6 +32,37 @@ export default function Login() {
       } else {
         navigate('/dashboard');
       }
+    } else {
+      toast.error(result.payload?.msg || 'Google login failed');
+    }
+  } catch (err) {
+    toast.error('Something went wrong with Google login');
+  }
+};
+
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const result = await dispatch(login({ email, password }));
+
+    if (result.meta.requestStatus === 'fulfilled') {
+  const { requires_otp, access_token } = result.payload;
+
+    if (requires_otp) {
+      navigate('/verify-otp', { state: { email } });
+      return;
+    }
+
+    const decoded = jwtDecode(access_token);
+
+    if (decoded?.role === 'admin') {
+      navigate('/admin/dashboard');
+    } else {
+      navigate('/dashboard');
+    }
+
     } else {
       toast.error(result.payload?.msg || 'Login failed');
     }
@@ -81,7 +112,7 @@ export default function Login() {
             </Link>
           </div>
 
-          {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+          {error && <p className="text-sm text-red-500 text-center">{error.message}</p>}
 
           <button
             type="submit"
@@ -100,6 +131,13 @@ export default function Login() {
             Sign Up
           </Link>
         </p>
+        <div className="mt-6 flex justify-center">
+        <GoogleLogin
+          onSuccess={handleGoogleLogin}
+          onError={() => toast.error('Google login error')}
+          useOneTap
+        />
+      </div>
       </div>
     </div>
   );

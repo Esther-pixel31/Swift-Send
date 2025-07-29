@@ -9,12 +9,13 @@ import {
   ArcElement,
   CategoryScale,
   LinearScale,
+  Filler,
   PointElement,
   Tooltip,
   Legend,
 } from 'chart.js';
 
-ChartJS.register(LineElement, ArcElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
+ChartJS.register(LineElement, ArcElement, CategoryScale, Filler, LinearScale, PointElement, Tooltip, Legend);
 
 export default function Dashboard() {
   const [wallet, setWallet] = useState({});
@@ -23,31 +24,32 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setUserName(decoded?.name || 'User');
-      } catch (err) {
-        console.warn('Token decode failed:', err);
-      }
+  const token = localStorage.getItem('accessToken');
+  if (!token) return; // 👈 Skip fetching if logged out
+
+  try {
+    const decoded = jwtDecode(token);
+    setUserName(decoded?.name || 'User');
+  } catch (err) {
+    console.warn('Token decode failed:', err);
+  }
+
+  const fetchData = async () => {
+    try {
+      const walletRes = await axios.get('/wallet/');
+      const txRes = await axios.get('/history/my-transactions');
+      setWallet(walletRes.data);
+      setTransactions(txRes.data.slice(0, 10));
+    } catch (err) {
+      toast.error('Error loading dashboard');
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const fetchData = async () => {
-      try {
-        const walletRes = await axios.get('/wallet');
-        const txRes = await axios.get('/history/my-transactions');
-        setWallet(walletRes.data);
-        setTransactions(txRes.data.slice(0, 10));
-      } catch (err) {
-        toast.error('Error loading dashboard');
-      } finally {
-        setLoading(false);
-      }
-    };
+  fetchData();
+}, []);
 
-    fetchData();
-  }, []);
 
   const spendingChart = {
     labels: transactions.map((t) => new Date(t.created_at).toLocaleDateString()).reverse(),

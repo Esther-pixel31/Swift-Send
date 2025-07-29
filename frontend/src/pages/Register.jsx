@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { register } from '../features/auth/authSlice';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Github, Mail } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
+import { googleLogin } from '../features/auth/authSlice';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -16,6 +18,8 @@ export default function Register() {
 
   const validateEmail = (email) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,10 +44,7 @@ export default function Register() {
         <p className="text-base text-textGray dark:text-zinc-400 text-center mb-6">
           Create a new account
         </p>
-
-        
-
-        
+   
 
         <form className="space-y-5" onSubmit={handleSubmit}>
           <div>
@@ -125,10 +126,23 @@ export default function Register() {
           <div className="text-sm text-center text-zinc-400 mb-4">or</div>
           
         <div className="space-y-3 mb-6">
-          <button className="w-full flex items-center justify-center gap-2 py-2 bg-white dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-600 transition">
-            <Mail size={18} />
-            Sign up with Google
-          </button>
+          <GoogleLogin
+            onSuccess={async (credentialResponse) => {
+              try {
+                const result = await dispatch(googleLogin(credentialResponse));
+                if (result.meta.requestStatus === 'fulfilled') {
+                  navigate('/dashboard'); // or wherever you want to redirect after success
+                }
+              } catch (err) {
+                console.error('Google login failed:', err);
+              }
+            }}
+            onError={() => {
+              console.error('Google Login Failed');
+            }}
+            useOneTap
+          />
+
           <button className="w-full flex items-center justify-center gap-2 py-2 bg-white dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-600 transition">
             <Github size={18} />
             Sign up with GitHub

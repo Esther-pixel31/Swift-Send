@@ -1,5 +1,6 @@
-// src/utils/maskCardNumber.js
 export const maskCardNumber = (cardNumber) => {
-  if (!cardNumber || cardNumber.length !== 16) return '';
-  return `${cardNumber.slice(0, 4)} •••• •••• ${cardNumber.slice(-4)}`;
+  if (!cardNumber || cardNumber.length < 8) return '';
+  const first = cardNumber.slice(0, 4);
+  const last = cardNumber.slice(-4);
+  return `${first} •••• •••• ${last}`;
 };

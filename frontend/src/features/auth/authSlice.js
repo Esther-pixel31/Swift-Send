@@ -37,6 +37,20 @@ export const adminLogin = createAsyncThunk('auth/adminLogin', async (payload, th
     return thunkAPI.rejectWithValue(err.response?.data || { msg: 'Server error' });
   }
 });
+// GOOGLE LOGIN
+export const googleLogin = createAsyncThunk('auth/googleLogin', async (tokenPayload, thunkAPI) => {
+  try {
+    const res = await axios.post('/auth/google', tokenPayload); // tokenPayload = { token: string }
+
+    localStorage.setItem('accessToken', res.data.access_token);
+    localStorage.setItem('refreshToken', res.data.refresh_token);
+
+    return res.data;
+  } catch (err) {
+    return thunkAPI.rejectWithValue(err.response?.data || { msg: 'Google login failed' });
+  }
+});
+
 
 
 const authSlice = createSlice({
@@ -128,7 +142,30 @@ const authSlice = createSlice({
         type: 'adminLogin',
         message: action.payload?.msg || 'Admin login failed'
       };
-    });
+    })
+    .addCase(googleLogin.pending, (state) => {
+    state.status = 'loading';
+    state.error = null;
+  })
+  .addCase(googleLogin.fulfilled, (state, action) => {
+    state.status = 'succeeded';
+    state.accessToken = action.payload.access_token;
+    state.refreshToken = action.payload.refresh_token;
+    try {
+      state.user = jwtDecode(action.payload.access_token);
+    } catch {
+      state.user = null;
+    }
+    state.error = null;
+  })
+  .addCase(googleLogin.rejected, (state, action) => {
+    state.status = 'failed';
+    state.error = {
+      type: 'googleLogin',
+      message: action.payload?.msg || 'Google login failed'
+    };
+  });
+
 
   },
 
