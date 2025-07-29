@@ -8,7 +8,7 @@ class Transaction(Base, SerializationMixin):
    
     id = Column(Integer, primary_key=True)
     
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     beneficiary_id = Column(Integer, ForeignKey('beneficiaries.id'), nullable=True)  
 
     amount = Column(Numeric, nullable=False)
