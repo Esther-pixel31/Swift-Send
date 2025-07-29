@@ -39,17 +39,19 @@ export default function ChangePassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.current_password || !formData.new_password || !formData.confirm_password) {
+    const { current_password, new_password, confirm_password } = formData;
+
+    if (!current_password || !new_password || !confirm_password) {
       toast.error("All fields are required.");
       return;
     }
 
-    if (formData.new_password !== formData.confirm_password) {
+    if (new_password !== confirm_password) {
       toast.error("New passwords do not match.");
       return;
     }
 
-    if (!validatePassword(formData.new_password)) {
+    if (!validatePassword(new_password)) {
       toast.error("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
       return;
     }
@@ -58,13 +60,8 @@ export default function ChangePassword() {
     try {
       await axios.post(
         "/user/change-password",
-        {
-          current_password: formData.current_password,
-          new_password: formData.new_password,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { current_password, new_password },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success("Password changed successfully.");
       setTimeout(() => navigate("/profile"), 1500);
@@ -77,12 +74,15 @@ export default function ChangePassword() {
 
   const toggleVisibility = () => setShowPassword((prev) => !prev);
 
+  const strength = getPasswordStrength(formData.new_password);
+
   return (
-    <div className="max-w-xl mx-auto p-6 bg-white rounded-xl shadow-md mt-6">
+    <div className="max-w-xl mx-auto p-6 bg-white rounded-xl shadow mt-8">
       <ToastContainer />
-      <h2 className="text-xl font-bold mb-4">Change Password</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <h2 className="text-2xl font-semibold mb-6 text-textDark">Change Password</h2>
+      <form onSubmit={handleSubmit} className="space-y-5">
         <PasswordInput
+          id="current-password"
           label="Current Password"
           name="current_password"
           value={formData.current_password}
@@ -91,6 +91,7 @@ export default function ChangePassword() {
           toggle={toggleVisibility}
         />
         <PasswordInput
+          id="new-password"
           label="New Password"
           name="new_password"
           value={formData.new_password}
@@ -99,20 +100,15 @@ export default function ChangePassword() {
           toggle={toggleVisibility}
         />
         {formData.new_password && (
-          <p className="text-sm text-gray-600">
-            Strength:{" "}
-            <span className={
-              getPasswordStrength(formData.new_password) === "Strong"
-                ? "text-green-600"
-                : getPasswordStrength(formData.new_password) === "Medium"
-                ? "text-yellow-600"
-                : "text-red-600"
-            }>
-              {getPasswordStrength(formData.new_password)}
-            </span>
+          <p className={`text-sm font-medium ${
+            strength === "Strong" ? "text-green-600" :
+            strength === "Medium" ? "text-yellow-600" : "text-red-600"
+          }`}>
+            Strength: {strength}
           </p>
         )}
         <PasswordInput
+          id="confirm-password"
           label="Confirm New Password"
           name="confirm_password"
           value={formData.confirm_password}
@@ -124,7 +120,7 @@ export default function ChangePassword() {
         <div className="flex justify-between items-center pt-4">
           <button
             type="button"
-            className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-black"
+            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-textDark rounded-md"
             onClick={() => navigate("/profile")}
           >
             Cancel
@@ -132,7 +128,9 @@ export default function ChangePassword() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`px-4 py-2 text-white rounded ${isSubmitting ? "bg-blue-300" : "bg-blue-500 hover:bg-blue-600"}`}
+            className={`px-4 py-2 text-white rounded-md ${
+              isSubmitting ? "bg-primary/60" : "bg-primary hover:bg-primary/90"
+            }`}
           >
             {isSubmitting ? "Updating..." : "Update Password"}
           </button>
@@ -142,26 +140,26 @@ export default function ChangePassword() {
   );
 }
 
-
-
-function PasswordInput({ label, name, value, onChange, show, toggle }) {
+function PasswordInput({ id, label, name, value, onChange, show, toggle }) {
   return (
     <div className="relative">
-      <label className="block text-gray-700 mb-1">{label}</label>
+      <label htmlFor={id} className="block text-sm font-medium text-textDark mb-1">
+        {label}
+      </label>
       <input
+        id={id}
         type={show ? "text" : "password"}
         name={name}
         value={value || ""}
         onChange={onChange}
-        className="w-full border rounded px-3 py-2 pr-10"
+        className="w-full border border-gray-300 rounded-md px-3 py-2 pr-10 text-textDark focus:outline-none focus:ring-2 focus:ring-primary"
       />
       <span
         onClick={toggle}
         className="absolute right-3 top-[38px] cursor-pointer text-gray-500"
       >
-        {show ? <FiEyeOff size={15} /> : <FiEye size={15} />}
+        {show ? <FiEyeOff size={18} /> : <FiEye size={18} />}
       </span>
     </div>
   );
 }
-

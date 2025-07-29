@@ -46,6 +46,9 @@ def create_app(testing=False):  # Accept a testing parameter
     JWTManager(app)
     CORS(app, origins=["http://127.0.0.1:5173"], supports_credentials=True)
 
+    app.url_map.strict_slashes = False
+
+
 
     # Register Blueprints
     app.register_blueprint(auth_bp, url_prefix='/api/auth')

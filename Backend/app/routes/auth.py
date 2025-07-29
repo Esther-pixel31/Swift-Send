@@ -12,9 +12,11 @@ from ..schemas import RegisterSchema, LoginSchema
 from pydantic import ValidationError
 from ..utils.card import generate_card_number
 from datetime import datetime, timedelta
-from ..utils.encryption import encrypt_cvc
-from flask import request
+from ..utils.encryption import encrypt_cvc, decrypt_cvc
+from google.oauth2 import id_token
+from google.auth.transport import requests as grequests
 from ..models.support_ticket import SupportTicket
+from flask import request
 import random
 
 auth_bp = Blueprint('auth', __name__)
@@ -45,7 +47,7 @@ def register():
         user.card_expiry = (datetime.utcnow() + timedelta(days=365 * 4)).strftime('%m/%y')
         user.card_cvc = ''.join(str(random.randint(0, 9)) for _ in range(3))
 
-        wallet = Wallet(user_id=user.id, balance=0.0, currency="USD")
+        wallet = Wallet(user_id=user.id, balance=0.0, currency="KES")
         session.add(wallet)
         session.commit()
 
@@ -77,12 +79,18 @@ def login():
             if not user.is_active:
                 return jsonify({"msg": "Your account is suspended"}), 403
 
-            # ✅ Embed claims
+            if not user.otp_verified:
+                return jsonify({
+                    "msg": "OTP verification required",
+                    "requires_otp": True,
+                    "email": user.email
+                }), 200
+
             claims = {
                 "email": user.email,
                 "name": user.name,
                 "role": user.role,
-                "otp_verified": user.otp_verified,
+                "otp_verified": True,
                 "card_number": user.card_number,
                 "card_expiry": user.card_expiry,
                 "card_cvc": user.card_cvc
@@ -90,22 +98,15 @@ def login():
             access_token = create_access_token(identity=user.id, additional_claims=claims)
             refresh_token = create_refresh_token(identity=user.id)
 
-            if not user.otp_verified:
-                return jsonify({
-                    "msg": "OTP verification required",
-                    "access_token": access_token,
-                    "refresh_token": refresh_token
-                }), 200
-
             return jsonify({
                 "access_token": access_token,
                 "refresh_token": refresh_token
             }), 200
 
         return jsonify({"msg": "Invalid credentials"}), 401
+
     finally:
         session.close()
-
 
 @auth_bp.route('/generate-otp', methods=['POST'])
 @jwt_required()
@@ -243,3 +244,83 @@ def list_user_tickets():
     tickets = session.query(SupportTicket).filter_by(user_id=user_id).order_by(SupportTicket.created_at.desc()).all()
     session.close()
     return jsonify([t.serialize() for t in tickets]), 200
+
+
+@auth_bp.route('/google', methods=['POST'])
+def google_login():
+    token = request.json.get('credential')
+
+    if not token:
+        return jsonify({'msg': 'Missing token'}), 400
+
+    try:
+        idinfo = id_token.verify_oauth2_token(
+            token,
+            grequests.Request(),
+            '524179187669-fv1m428gts5bto6v01i20vo5oj855qlb.apps.googleusercontent.com'
+        )
+
+        email = idinfo.get('email')
+        name = idinfo.get('name')
+
+        if not email:
+            return jsonify({'msg': 'Google token missing email'}), 400
+
+        session = SessionLocal()
+        try:
+            user = session.query(User).filter_by(email=email).first()
+
+            if not user:
+                # 🔐 Create user and assign card info
+                user = User(
+                    email=email,
+                    name=name,
+                    role='user',
+                    otp_verified=True,
+                    is_active=True,
+                    card_number=generate_card_number(),
+                    card_expiry=(datetime.utcnow() + timedelta(days=365 * 4)).strftime('%m/%y'),
+                    card_cvc=encrypt_cvc(''.join(str(random.randint(0, 9)) for _ in range(3))),
+                )
+                session.add(user)
+                session.flush()  # Assigns user.id without full commit
+
+                # 💰 Create wallet for new Google user
+                wallet = Wallet(user_id=user.id, balance=0.0, currency="KES")
+                session.add(wallet)
+                session.commit()
+            else:
+                # ✅ Ensure wallet exists for existing user
+                wallet = session.query(Wallet).filter_by(user_id=user.id).first()
+                if not wallet:
+                    wallet = Wallet(user_id=user.id, balance=0.0, currency="KES")
+                    session.add(wallet)
+                    session.commit()
+
+            if not user.is_active:
+                return jsonify({"msg": "Your account is suspended"}), 403
+
+            claims = {
+                "email": user.email,
+                "name": user.name,
+                "role": user.role,
+                "otp_verified": user.otp_verified,
+                "card_number": user.card_number,
+                "card_expiry": user.card_expiry,
+                "card_cvc": decrypt_cvc(user.card_cvc)
+            }
+
+            access_token = create_access_token(identity=user.id, additional_claims=claims)
+            refresh_token = create_refresh_token(identity=user.id)
+
+            return jsonify({
+                "access_token": access_token,
+                "refresh_token": refresh_token
+            }), 200
+
+        finally:
+            session.close()
+
+    except ValueError as e:
+        print(f"Google login error: {e}")
+        return jsonify({'msg': 'Invalid Google token'}), 400
