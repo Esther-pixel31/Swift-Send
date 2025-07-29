@@ -2,7 +2,7 @@ alembic==1.14.1
 aniso8601==10.0.1
 annotated-types==0.7.0
 APScheduler==3.11.0
-backports.zoneinfo==0.2.1
+backports.zoneinfo==0.2.1; python_version < "3.9"
 bcrypt==4.3.0
 blinker==1.8.2
 cffi==1.17.1
