@@ -1,4 +1,4 @@
-// src/pages/Login.jsx
+
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { login, googleLogin } from '../features/auth/authSlice';
@@ -7,63 +7,74 @@ import { jwtDecode } from 'jwt-decode';
 import { toast } from 'react-toastify';
 import { GoogleLogin } from '@react-oauth/google';
 
- // ✅ Missing import
-
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const [emailError, setEmailError] = useState(''); // State to hold email validation error message
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { error } = useSelector((state) => state.auth);
-  
+ 
+  const { error: backendError } = useSelector((state) => state.auth); 
   const handleGoogleLogin = async (credentialResponse) => {
-  try {
-    const result = await dispatch(googleLogin({ credential: credentialResponse.credential }));
+    try {
+      setLoading(true); // Set loading for Google login
+      const result = await dispatch(googleLogin({ credential: credentialResponse.credential }));
 
-    if (result.meta.requestStatus === 'fulfilled') {
-      const decoded = jwtDecode(result.payload.access_token);
+      if (result.meta.requestStatus === 'fulfilled') {
+        const decoded = jwtDecode(result.payload.access_token);
 
-      if (decoded?.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else if (!decoded?.otp_verified) {
-        navigate('/verify-otp');
+        if (decoded?.role === 'admin') {
+          navigate('/admin/dashboard');
+        } else if (!decoded?.otp_verified) {
+          navigate('/verify-otp');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
-        navigate('/dashboard');
+        toast.error(result.payload?.msg || 'Google login failed');
       }
-    } else {
-      toast.error(result.payload?.msg || 'Google login failed');
+    } catch (err) {
+      toast.error('Something went wrong with Google login');
+    } finally {
+      setLoading(false); // Ensure loading is reset
     }
-  } catch (err) {
-    toast.error('Something went wrong with Google login');
-  }
-};
-
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setEmailError(''); // Clear previous email errors
+
+    // NEW: Client-side email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError('Please enter a valid email address.');
+      setLoading(false);
+      return;
 
     const result = await dispatch(login({ email, password }));
 
     if (result.meta.requestStatus === 'fulfilled') {
-  const { requires_otp, access_token } = result.payload;
+      const { requires_otp, access_token } = result.payload;
 
-    if (requires_otp) {
-      navigate('/verify-otp', { state: { email } });
-      return;
-    }
+      if (requires_otp) {
+        navigate('/verify-otp', { state: { email } });
+        return;
+      }
 
-    const decoded = jwtDecode(access_token);
+      const decoded = jwtDecode(access_token);
 
-    if (decoded?.role === 'admin') {
-      navigate('/admin/dashboard');
+      if (decoded?.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } else {
-      navigate('/dashboard');
-    }
-
-    } else {
+     
       toast.error(result.payload?.msg || 'Login failed');
     }
 
@@ -82,11 +93,13 @@ export default function Login() {
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); setEmailError(''); }} // Clear error on change
               placeholder="hello@example.com"
               className="w-full px-4 py-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-accent"
               required
             />
+         
+            {emailError && <p className="text-sm text-red-500 mt-1">{emailError}</p>}
           </div>
 
           <div>
@@ -112,7 +125,8 @@ export default function Login() {
             </Link>
           </div>
 
-          {error && <p className="text-sm text-red-500 text-center">{error.message}</p>}
+       
+          {backendError && <p className="text-sm text-red-500 text-center">{backendError.message}</p>}
 
           <button
             type="submit"
@@ -132,12 +146,12 @@ export default function Login() {
           </Link>
         </p>
         <div className="mt-6 flex justify-center">
-        <GoogleLogin
-          onSuccess={handleGoogleLogin}
-          onError={() => toast.error('Google login error')}
-          useOneTap
-        />
-      </div>
+          <GoogleLogin
+            onSuccess={handleGoogleLogin}
+            onError={() => toast.error('Google login error')}
+            useOneTap
+          />
+        </div>
       </div>
     </div>
   );

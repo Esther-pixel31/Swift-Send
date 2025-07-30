@@ -1,157 +1,123 @@
+
+
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { register } from '../features/auth/authSlice';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Github, Mail } from 'lucide-react';
-import { GoogleLogin } from '@react-oauth/google';
-import { googleLogin } from '../features/auth/authSlice';
+import { register } from '../features/auth/authSlice'; // Adjust path based on your file structure
+import { useNavigate, Link } from 'react-router-dom';
+import { toast } from 'react-toastify'; // Assuming you want toast notifications here too
 
 export default function Register() {
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [emailError, setEmailError] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // Matching Login.jsx's showPassword state
+  const [loading, setLoading] = useState(false); // Matching Login.jsx's local loading state
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { error } = useSelector((state) => state.auth);
-
-  const validateEmail = (email) =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
-  
+  const { error } = useSelector((state) => state.auth); // Accessing error from auth slice
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true); // Set loading true when form is submitted
 
-    if (!validateEmail(email)) {
-      setEmailError('Invalid email format');
+    // Client-side password confirmation check
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match.'); // Using toast for user feedback
+      setLoading(false); // Stop loading if client-side validation fails
       return;
     }
 
-    const result = await dispatch(register({ name, email, password }));
+    const result = await dispatch(register({ email, password })); // Dispatch register async thunk
+
     if (result.meta.requestStatus === 'fulfilled') {
-      navigate('/login');
+      toast.success(result.payload?.msg || 'Registration successful! Please log in.'); // Success message
+      navigate('/login'); // Navigate to login page after successful registration
+    } else {
+      // Error is handled by extraReducers in authSlice.js, we just display it here
+      toast.error(result.payload?.msg || 'Registration failed. Please try again.');
     }
+
+    setLoading(false); // Stop loading after API call
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-bgLight dark:bg-zinc-900 px-4">
-      <div className="bg-cardBg dark:bg-zinc-800 p-8 sm:p-10 rounded-3xl shadow-xl w-full max-w-md">
-        <h1 className="text-3xl font-semibold text-center text-textDark dark:text-white mb-2">
-          Welcome
-        </h1>
-        <p className="text-base text-textGray dark:text-zinc-400 text-center mb-6">
-          Create a new account
-        </p>
-   
+    <div className="min-h-screen flex items-center justify-center bg-bgLight px-4">
+      <div className="bg-cardBg p-10 rounded-3xl shadow-xl mx-auto max-w-md w-full">
+        <h1 className="text-3xl font-semibold text-center text-textDark mb-2">Create Your Account</h1>
+        <p className="text-base text-textGray text-center mb-8">Sign up to get started with Cashie</p>
 
-        <form className="space-y-5" onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label htmlFor="name" className="block text-sm text-textGray dark:text-zinc-400 mb-1">
-              Full Name
-            </label>
+            <label className="block text-sm text-textGray mb-1">Email</label>
             <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Jane Doe"
-              className="w-full px-4 py-3 rounded-md border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-accent"
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="email" className="block text-sm text-textGray dark:text-zinc-400 mb-1">
-              Email
-            </label>
-            <input
-              id="email"
               type="email"
               value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (emailError) setEmailError('');
-              }}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="hello@example.com"
-              className="w-full px-4 py-3 rounded-md border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-4 py-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-accent"
               required
             />
-            {emailError && <p className="text-sm text-red-500 mt-1">{emailError}</p>}
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm text-textGray dark:text-zinc-400 mb-1">
-              Password
-            </label>
+            <label className="block text-sm text-textGray mb-1">Password</label>
             <div className="relative">
               <input
-                id="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Create a password"
-                className="w-full px-4 py-3 pr-10 rounded-md border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-accent"
+                placeholder="••••••••"
+                className="w-full px-4 py-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-accent"
                 required
               />
-              <button
-                type="button"
+              <span
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-zinc-400"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-accent cursor-pointer"
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+                {showPassword ? 'Hide' : 'Show'}
+              </span>
             </div>
           </div>
 
-          {error && (
-            <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
-          )}
+          <div>
+            <label className="block text-sm text-textGray mb-1">Confirm Password</label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-accent"
+                required
+              />
+              <span
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-accent cursor-pointer"
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </span>
+            </div>
+          </div>
 
-          <p className="text-xs text-textGray dark:text-zinc-400">
-            By creating an account, you agree to our{' '}
-            <a href="/terms" className="text-primary underline hover:text-accent">
-              Terms and Conditions
-            </a>.
-          </p>
+          {/* Display error message from Redux state if available and not handled by toast */}
+          {error && error?.type === 'register' && (
+            <p className="text-sm text-red-500 text-center">{error.message}</p>
+          )}
 
           <button
             type="submit"
-            className="w-full py-3 bg-primary text-white rounded-md hover:bg-accent transition"
+            disabled={loading}
+            className={`w-full py-3 text-white rounded-md transition ${
+              loading ? 'bg-primary/70 cursor-not-allowed' : 'bg-primary hover:bg-accent'
+            }`}
           >
-            Sign Up
+            {loading ? 'Registering...' : 'Sign Up'}
           </button>
-          {/* Social Auth Buttons */}
-          <div className="text-sm text-center text-zinc-400 mb-4">or</div>
-          
-        <div className="space-y-3 mb-6">
-          <GoogleLogin
-            onSuccess={async (credentialResponse) => {
-              try {
-                const result = await dispatch(googleLogin(credentialResponse));
-                if (result.meta.requestStatus === 'fulfilled') {
-                  navigate('/dashboard'); // or wherever you want to redirect after success
-                }
-              } catch (err) {
-                console.error('Google login failed:', err);
-              }
-            }}
-            onError={() => {
-              console.error('Google Login Failed');
-            }}
-            useOneTap
-          />
-
-          <button className="w-full flex items-center justify-center gap-2 py-2 bg-white dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-600 transition">
-            <Github size={18} />
-            Sign up with GitHub
-          </button>
-        </div>
         </form>
 
-        <p className="text-sm text-textGray dark:text-zinc-400 text-center mt-6">
-          Have an account?{' '}
+        <p className="text-sm text-textGray text-center mt-6">
+          Already have an account?{' '}
           <Link to="/login" className="text-primary hover:underline font-medium">
             Sign In
           </Link>
