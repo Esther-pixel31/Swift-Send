@@ -81,6 +81,15 @@ const authSlice = createSlice({
         state.user = null;
       }
     },
+    setTempToken(state, action) {
+      state.accessToken = action.payload;
+      try {
+        state.user = jwtDecode(action.payload);
+      } catch {
+        state.user = null;
+      }
+    },
+
   },
   extraReducers: (builder) => {
     builder
@@ -171,5 +180,5 @@ const authSlice = createSlice({
 
 });
 
-export const { logout, setAuthFromStorage } = authSlice.actions;
+export const { logout, setAuthFromStorage, setTempToken } = authSlice.actions;
 export default authSlice.reducer;

@@ -79,13 +79,21 @@ def login():
             if not user.is_active:
                 return jsonify({"msg": "Your account is suspended"}), 403
 
+            # 🔐 OTP not verified yet
             if not user.otp_verified:
+                temp_token = create_access_token(identity=user.id, additional_claims={
+                    "email": user.email,
+                    "name": user.name,
+                    "otp_verified": False
+                })
                 return jsonify({
                     "msg": "OTP verification required",
                     "requires_otp": True,
-                    "email": user.email
+                    "email": user.email,
+                    "temp_token": temp_token
                 }), 200
 
+            # ✅ OTP verified — issue full tokens
             claims = {
                 "email": user.email,
                 "name": user.name,
@@ -107,6 +115,7 @@ def login():
 
     finally:
         session.close()
+
 
 @auth_bp.route('/generate-otp', methods=['POST'])
 @jwt_required()

@@ -1,7 +1,7 @@
 // src/pages/Login.jsx
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { login, googleLogin } from '../features/auth/authSlice';
+import { login, googleLogin, setTempToken } from '../features/auth/authSlice';
 import { useNavigate, Link } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { toast } from 'react-toastify';
@@ -51,9 +51,14 @@ export default function Login() {
   const { requires_otp, access_token } = result.payload;
 
     if (requires_otp) {
-      navigate('/verify-otp', { state: { email } });
-      return;
-    }
+  dispatch(setTempToken(result.payload.temp_token)); // ✅ store in Redux
+  localStorage.setItem('accessToken', result.payload.temp_token); // optional: if needed across refresh
+  navigate('/verify-otp');
+  return;
+}
+
+
+
 
     const decoded = jwtDecode(access_token);
 
