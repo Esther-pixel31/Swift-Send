@@ -13,8 +13,9 @@ class Beneficiary(Base, SerializationMixin):
     phone_number = Column(String, nullable=False)
     bank_account_number = Column(String, nullable=True)
     bank_name = Column(String, nullable=True)
-    group = Column(String, nullable=True)  # e.g., family, friends, business
+    group = Column(String, nullable=True)  
     is_favorite = Column(Boolean, default=False)
+    currency = Column(String, nullable=False, default='KES')
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

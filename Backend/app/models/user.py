@@ -19,7 +19,7 @@ class User(Base, SerializationMixin):
     card_cvc = Column(String, nullable=True)
     is_admin = Column(Boolean, default=False)
 
-    #2FA and security features 
+    
     otp_secret = Column(String, nullable=True)
     otp_verified = Column(Boolean, default=False)
     biometric_enabled = Column(Boolean, default=False)
@@ -40,7 +40,7 @@ class User(Base, SerializationMixin):
     fraud_logs = relationship("FraudLog", back_populates="user")
     reviewed_docs = relationship("KYC", back_populates="reviewer", foreign_keys="[KYC.reviewed_by]")
     otp_codes = relationship("OTPCode",back_populates="user",cascade="all, delete-orphan",  passive_deletes=True )
-
+  
     def set_password(self, password):
         self.hashed_password = generate_password_hash(password)
 

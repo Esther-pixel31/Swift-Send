@@ -207,25 +207,40 @@ export default function AdminKYC() {
 
       {/* 📄 Modal */}
       {previewDoc && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white w-full max-w-3xl p-4 rounded shadow-xl relative">
-            <button
-              onClick={() => setPreviewDoc(null)}
-              className="absolute top-2 right-2 text-gray-600 hover:text-black"
-            >
-              ✖
-            </button>
-            <h3 className="text-lg font-semibold mb-2">
-              {previewDoc.doc_type} - {previewDoc.user_email}
-            </h3>
-            <iframe
-              src={previewDoc.doc_url}
-              title="KYC Document"
-              className="w-full h-[70vh] border"
-            />
-          </div>
-        </div>
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div className="bg-white w-full max-w-3xl p-4 rounded shadow-xl relative">
+      <button
+        onClick={() => setPreviewDoc(null)}
+        className="absolute top-2 right-2 text-gray-600 hover:text-black text-xl"
+      >
+        ✖
+      </button>
+
+      <h3 className="text-lg font-semibold mb-4">
+        {previewDoc.doc_type} - {previewDoc.user_email}
+      </h3>
+
+      {previewDoc.doc_url && previewDoc.doc_url.match(/\.(jpeg|jpg|png|webp|png)$/i) ? (
+        <img
+          src={previewDoc.doc_url}
+          alt="KYC Document"
+          className="w-full h-auto max-h-[70vh] object-contain border rounded"
+        />
+      ) : previewDoc.doc_url ? (
+        <iframe
+          src={previewDoc.doc_url}
+          title="KYC Document"
+          className="w-full h-[70vh] border rounded"
+        />
+      ) : (
+        <p className="text-red-600">No document URL available.</p>
       )}
     </div>
-  );
-}
+  </div>
+)}
+
+        </div>
+      )}
+
+      
+    

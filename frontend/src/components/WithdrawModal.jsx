@@ -4,23 +4,30 @@ import { toast } from 'react-toastify';
 
 export default function WithdrawModal({ onClose, fetchWallet }) {
   const [amount, setAmount] = useState('');
+  const [destination, setDestination] = useState('');
+  const [method, setMethod] = useState('mpesa');
   const [loading, setLoading] = useState(false);
 
   const handleWithdraw = async () => {
     const numericAmount = parseFloat(amount);
-
-    if (!numericAmount || numericAmount <= 0) {
-      toast.error('Enter a valid withdrawal amount.');
+    if (!numericAmount || numericAmount <= 0 || !destination.trim()) {
+      toast.error('Enter a valid amount and destination.');
       return;
     }
 
     setLoading(true);
     try {
-      await axios.post('/wallet/withdraw', { amount: numericAmount });
-      toast.success('Withdrawal successful');
-      fetchWallet(); // Refresh wallet balance
+      const { data } = await axios.post('/wallet/mock-withdraw', {
+        amount: numericAmount,
+        destination,
+        method
+      });
+
+      toast.success(`Withdrawal via ${method.toUpperCase()} successful. Ref: ${data.reference}`);
+      fetchWallet();
       onClose();
     } catch (error) {
+      console.error(error);
       toast.error('Withdrawal failed');
     } finally {
       setLoading(false);
@@ -28,11 +35,7 @@ export default function WithdrawModal({ onClose, fetchWallet }) {
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
-      role="dialog"
-      aria-modal="true"
-    >
+    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-xl w-96 space-y-4 shadow-lg animate-fade-in">
         <h3 className="text-xl font-semibold text-gray-800">Withdraw Funds</h3>
 
@@ -41,9 +44,25 @@ export default function WithdrawModal({ onClose, fetchWallet }) {
           placeholder="Enter amount"
           value={amount}
           onChange={e => setAmount(e.target.value)}
-          autoFocus
           className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
         />
+
+        <input
+          type="text"
+          placeholder={method === 'mpesa' ? "Phone number (e.g. 0712345678)" : "Card or account number"}
+          value={destination}
+          onChange={e => setDestination(e.target.value)}
+          className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
+        />
+
+        <select
+          value={method}
+          onChange={e => setMethod(e.target.value)}
+          className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
+        >
+          <option value="mpesa">M-Pesa</option>
+          <option value="card">Card</option>
+        </select>
 
         <div className="flex justify-end gap-2 pt-2">
           <button

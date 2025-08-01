@@ -4,11 +4,14 @@ import { useNavigate } from "react-router-dom";
 import axios from "../utils/axiosInstance";
 import { isTokenExpired } from "../utils/token";
 import { logout } from "../features/auth/authSlice";
+import KycModal from "../components/KycModal"; // Make sure this path matches your project structure
 
 export default function Profile() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showKycModal, setShowKycModal] = useState(false);
+  const [kycRefreshKey, setKycRefreshKey] = useState(0);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -44,7 +47,7 @@ export default function Profile() {
     }
 
     fetchUserData();
-  }, [token]);
+  }, [token, kycRefreshKey]); // refresh on modal upload
 
   const handleEdit = () => navigate("/edit-profile");
   const handleChangePassword = () => navigate("/change-password");
@@ -112,10 +115,20 @@ export default function Profile() {
       <ProfileRow label="Role" value={capitalize(user.role)} />
       <ProfileRow label="Verified" value={user.is_verified ? "Yes" : "No"} />
 
-      {/* KYC Status with Badge */}
-      <div className="flex justify-between border-b pb-2 items-center">
-        <span className="text-gray-500 dark:text-gray-400">KYC Status</span>
-        <StatusBadge status={user.kyc_status} />
+      {/* KYC Status + Button */}
+      <div className="flex justify-between items-center border-b pb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-gray-500 dark:text-gray-400">KYC Status</span>
+          <StatusBadge status={user.kyc_status} />
+        </div>
+        {user.kyc_status !== "approved" && (
+          <button
+            onClick={() => setShowKycModal(true)}
+            className="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+          >
+            Verify Identity
+          </button>
+        )}
       </div>
 
       <ProfileRow label="Account Created" value={formatDate(user.created_at)} />
@@ -141,9 +154,20 @@ export default function Profile() {
           Delete Account
         </button>
       </div>
+
+      {/* KYC Modal */}
+      <KycModal
+        isOpen={showKycModal}
+        onClose={() => setShowKycModal(false)}
+        onUploadSuccess={() => {
+          setKycRefreshKey(Date.now());
+        }}
+      />
     </div>
   );
 }
+
+// -- Utilities --
 
 function ProfileRow({ label, value }) {
   return (
@@ -155,8 +179,7 @@ function ProfileRow({ label, value }) {
 }
 
 function StatusBadge({ status }) {
-  const base =
-    "px-2 py-1 text-xs rounded-full font-medium capitalize";
+  const base = "px-2 py-1 text-xs rounded-full font-medium capitalize";
   const styles = {
     pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
     approved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
@@ -165,7 +188,6 @@ function StatusBadge({ status }) {
   };
 
   const colorClass = styles[status] || styles.unknown;
-
   return <span className={`${base} ${colorClass}`}>{capitalize(status || "unknown")}</span>;
 }
 

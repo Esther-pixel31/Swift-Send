@@ -13,6 +13,7 @@ class Wallet(Base, SerializationMixin):
     currency = Column(String(10), default="KES")
     spending_limit = Column(Numeric(12, 2), nullable=True)
     budget = Column(Numeric(12, 2), nullable=True)
+    credit = Column(Numeric(precision=12, scale=2), default=0.00)
     daily_limit = Column(Numeric(12, 2), default=0.00)
     monthly_limit = Column(Numeric(12, 2), default=0.00)
     last_spending_reset = Column(DateTime, default=datetime.utcnow)
@@ -22,7 +23,7 @@ class Wallet(Base, SerializationMixin):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # ✅ Key fix: passive_deletes=True enables SQL-level cascade
+   
     user = relationship("User", back_populates="wallets", passive_deletes=True)
 
     def __repr__(self):

@@ -36,12 +36,12 @@ def register():
         user = User(
             name=data.name,
             email=data.email,
-            card_number=generate_card_number()  # 🔐 Assign card number here
+            card_number=generate_card_number()  
         )
         user.set_password(data.password)
 
         session.add(user)
-        session.flush()  # Get user.id
+        session.flush()  
 
         user.card_cvc = encrypt_cvc(''.join(str(random.randint(0, 9)) for _ in range(3)))
         user.card_expiry = (datetime.utcnow() + timedelta(days=365 * 4)).strftime('%m/%y')
@@ -54,7 +54,7 @@ def register():
         return jsonify({"msg": "User and wallet created successfully"}), 201
 
     except Exception as e:
-        print("🚨 Register Error:", e)
+        print(" Register Error:", e)
         session.rollback()
         return jsonify({"msg": "Internal server error"}), 500
 
@@ -79,7 +79,7 @@ def login():
             if not user.is_active:
                 return jsonify({"msg": "Your account is suspended"}), 403
 
-            # 🔐 OTP not verified yet
+            
             if not user.otp_verified:
                 temp_token = create_access_token(identity=user.id, additional_claims={
                     "email": user.email,
@@ -93,7 +93,7 @@ def login():
                     "temp_token": temp_token
                 }), 200
 
-            # ✅ OTP verified — issue full tokens
+           
             claims = {
                 "email": user.email,
                 "name": user.name,
@@ -142,10 +142,10 @@ def verify_otp_route():
             user.otp_verified = True
             session.commit()
 
-            # ✅ Return new tokens after verification with updated claim
+            
             claims = {
                 "email": user.email,
-                "name": user.name,               # ✅ this line ensures name is in token
+                "name": user.name,               
                 "otp_verified": user.otp_verified,
                 "card_number": user.card_number,
                 "card_expiry": user.card_expiry,
@@ -175,7 +175,7 @@ def refresh():
         user = session.query(User).get(user_id)
         claims = {
                 "email": user.email,
-                "name": user.name,               # ✅ this line ensures name is in token
+                "name": user.name,               
                 "otp_verified": user.otp_verified,
                 "card_number": user.card_number
             }
@@ -237,7 +237,7 @@ def create_ticket():
     session.add(ticket)
     session.commit()
 
-    # 🟢 Notify the user
+   
     from app.utils.mock_notify import send_mock_notification
     send_mock_notification(user_id, f"Your support ticket '{subject}' has been submitted.")
 
@@ -280,7 +280,7 @@ def google_login():
             user = session.query(User).filter_by(email=email).first()
 
             if not user:
-                # 🔐 Create user and assign card info
+               
                 user = User(
                     email=email,
                     name=name,
@@ -292,14 +292,14 @@ def google_login():
                     card_cvc=encrypt_cvc(''.join(str(random.randint(0, 9)) for _ in range(3))),
                 )
                 session.add(user)
-                session.flush()  # Assigns user.id without full commit
+                session.flush()  
 
-                # 💰 Create wallet for new Google user
+                
                 wallet = Wallet(user_id=user.id, balance=0.0, currency="KES")
                 session.add(wallet)
                 session.commit()
             else:
-                # ✅ Ensure wallet exists for existing user
+                
                 wallet = session.query(Wallet).filter_by(user_id=user.id).first()
                 if not wallet:
                     wallet = Wallet(user_id=user.id, balance=0.0, currency="KES")

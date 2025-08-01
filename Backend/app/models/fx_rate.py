@@ -10,7 +10,7 @@ class FXRate(Base, SerializationMixin):
     base_currency = Column(String(10), nullable=False)
     target_currency = Column(String(10), nullable=False)
     rate = Column(Float, nullable=False)
-    fee_percent = Column(Float, default=0.5)  # e.g., 0.5% fee
+    fee_percent = Column(Float, default=0.5)  
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def __repr__(self):

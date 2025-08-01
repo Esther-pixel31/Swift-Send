@@ -46,9 +46,8 @@ def add_beneficiary():
         session.commit()
         return jsonify({"msg": "Beneficiary added"}), 201
         
-    except Exception as e:  # <-- broader than just SQLAlchemyError
-        session.rollback()
-        print("❌ Exception in add_beneficiary:", e)  # ✅ Log the actual error
+    except Exception as e:  
+        session.rollback() 
         return jsonify({"msg": "Failed to add beneficiary", "error": str(e)}), 500
 
     finally:
