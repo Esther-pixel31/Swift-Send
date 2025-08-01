@@ -18,6 +18,7 @@ from .routes.mock_payment import mock_payments_bp
 from .routes.beneficiaries import beneficiary_bp
 from .routes.user import user_bp
 from .routes.admin import admin_bp
+from .routes.fx_rates import fx_bp
 
 from .utils.scheduler import start_scheduler
 
@@ -60,6 +61,7 @@ def create_app(testing=False):  # Accept a testing parameter
     app.register_blueprint(beneficiary_bp, url_prefix='/api/beneficiaries')
     app.register_blueprint(user_bp, url_prefix="/api/user")
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
+    app.register_blueprint(fx_bp, url_prefix="/api")
 
     if not testing:
         start_scheduler()

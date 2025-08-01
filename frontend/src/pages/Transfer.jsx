@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getBeneficiaries } from '../api/beneficiaries';
-import { sendDomesticTransfer } from '../api/transfer';
+import { sendDomesticTransfer, sendInternationalTransfer } from '../api/transfer';
+import { getFXRate } from '../api/fxRates';
 import { toast } from 'react-toastify';
 
 export default function Transfer() {
@@ -11,6 +12,10 @@ export default function Transfer() {
     note: '',
     currency: 'KES'
   });
+
+  const [fxRate, setFxRate] = useState(null);
+  const [convertedAmount, setConvertedAmount] = useState(null);
+  const [fxFee, setFxFee] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const loadBeneficiaries = async () => {
@@ -26,19 +31,77 @@ export default function Transfer() {
     loadBeneficiaries();
   }, []);
 
+  useEffect(() => {
+    const fetchFX = async () => {
+      const beneficiary = beneficiaries.find(b => b.email === form.receiver_email);
+      if (!beneficiary || beneficiary.currency === form.currency || !form.amount) {
+        setFxRate(null);
+        setConvertedAmount(null);
+        setFxFee(null);
+        return;
+      }
+
+      try {
+        const data = await getFXRate(form.currency, beneficiary.currency);
+        setFxRate(data);
+
+        const amount = parseFloat(form.amount);
+        const fee = amount * (data.fee_percent / 100);
+        const converted = amount * data.rate;
+
+        setFxFee(fee.toFixed(2));
+        setConvertedAmount(converted.toFixed(2));
+      } catch {
+        setFxRate(null);
+        setConvertedAmount(null);
+        setFxFee(null);
+        toast.error('Failed to fetch FX rate');
+      }
+    };
+
+    fetchFX();
+  }, [form.receiver_email, form.amount, form.currency, beneficiaries]);
+
   const handleSend = async () => {
     if (!form.receiver_email || !form.amount) {
       return toast.warn('Please select a recipient and enter an amount.');
     }
 
-    const confirmed = window.confirm(`Send ${form.amount} ${form.currency} to ${form.receiver_email}?`);
+    const recipient = beneficiaries.find(b => b.email === form.receiver_email);
+    if (!recipient) return toast.error('Recipient not found');
+
+    const isInternational = recipient.currency !== form.currency;
+
+    const confirmMessage = isInternational
+      ? `Send ${form.amount} ${form.currency} to ${form.receiver_email}?\nRecipient will get ≈ ${convertedAmount} ${recipient.currency} (fee: ${fxFee} ${form.currency})`
+      : `Send ${form.amount} ${form.currency} to ${form.receiver_email}?`;
+
+    const confirmed = window.confirm(confirmMessage);
     if (!confirmed) return;
 
     setLoading(true);
     try {
-      await sendDomesticTransfer(form);
-      toast.success('Transfer successful');
+      if (isInternational) {
+        const fx = await getFXRate(form.currency, recipient.currency);
+        if (!fx || !fx.rate) throw new Error('FX rate missing');
+
+        const res = await sendInternationalTransfer({
+          receiver_email: form.receiver_email,
+          amount: parseFloat(form.amount)
+        });
+
+        toast.success(
+          `Sent ${form.amount} ${form.currency} → ${res.data.converted_amount} ${recipient.currency} @ rate ${res.data.fx_rate}`
+        );
+      } else {
+        await sendDomesticTransfer(form);
+        toast.success('Transfer successful');
+      }
+
       setForm({ receiver_email: '', amount: '', note: '', currency: 'KES' });
+      setFxRate(null);
+      setConvertedAmount(null);
+      setFxFee(null);
     } catch (err) {
       toast.error(err.response?.data?.msg || 'Transfer failed');
     } finally {
@@ -106,6 +169,15 @@ export default function Transfer() {
             </select>
           </div>
         </div>
+
+        {/* FX Preview */}
+        {fxRate && (
+          <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded mt-2">
+            💱 <strong>FX Rate:</strong> 1 {fxRate.base_currency} = {fxRate.rate} {fxRate.target_currency}<br />
+            💸 <strong>Fee:</strong> {fxRate.fee_percent}% → {fxFee} {fxRate.base_currency}<br />
+            📤 <strong>Recipient gets:</strong> ≈ {convertedAmount} {fxRate.target_currency}
+          </div>
+        )}
 
         {/* Submit */}
         <div className="pt-2">

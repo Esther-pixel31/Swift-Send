@@ -13,6 +13,10 @@ from ..utils.auth import verified_user_required
 from ..schemas import TransferSchema
 from pydantic import ValidationError
 from ..utils.mock_notify import send_mock_notification
+from ..models.fx_rate import FXRate
+from ..schema.transfer import TransferSchema
+
+from ..models.user import User
 
 transfer_bp = Blueprint('transfer', __name__)
 
@@ -183,39 +187,49 @@ def cancel_scheduled_transfer(transfer_id):
 @jwt_required()
 @verified_user_required
 def international_transfer():
-    ok, sender, status = check_user_active()
-    if not ok:
-        return sender, status
-
-    try:
-        data = TransferSchema(**request.get_json())
-    except ValidationError as e:
-        return jsonify({"msg": "Invalid input", "errors": e.errors()}), 400
-
     session = SessionLocal()
     try:
+        # ✅ Get current user
+        user_id = get_jwt_identity()
+        sender = session.query(User).filter_by(id=user_id).first()
+        if not sender:
+            return jsonify({"msg": "User not found"}), 404
+
+        # ✅ Check if user is active
+        try:
+            check_user_active(sender)
+        except InactiveUserError as e:
+            return jsonify({"msg": str(e)}), 403
+
+
+        # ✅ Validate request data
+        try:
+            data = TransferSchema(**request.get_json())
+        except ValidationError as e:
+            return jsonify({"msg": "Invalid input", "errors": e.errors()}), 400
+
+        # ✅ Get recipient user
         recipient = session.query(User).filter_by(email=data.receiver_email).first()
         if not recipient:
             return jsonify({"msg": "Recipient not found"}), 404
         if recipient.id == sender.id:
             return jsonify({"msg": "Cannot transfer to yourself"}), 400
 
+        # ✅ Get wallets
         sender_wallet = session.query(Wallet).filter_by(user_id=sender.id).first()
         recipient_wallet = session.query(Wallet).filter_by(user_id=recipient.id).first()
         if not sender_wallet or not recipient_wallet:
             return jsonify({"msg": "Wallet not found"}), 404
 
-        # 1. FX Lookup
-        from app.models.fx_rate import FXRate
+        # ✅ FX rate lookup
         fx = session.query(FXRate).filter_by(
             base_currency=sender_wallet.currency,
             target_currency=recipient_wallet.currency
         ).first()
-
         if not fx:
             return jsonify({"msg": "Exchange rate not found"}), 400
 
-        # 2. Fee and conversion
+        # ✅ Fee + total deduction
         fee = float(data.amount) * (fx.fee_percent / 100)
         total_deduct = float(data.amount) + fee
         if sender_wallet.balance < total_deduct:
@@ -223,7 +237,7 @@ def international_transfer():
 
         converted_amount = float(data.amount) * fx.rate
 
-        # 3. Spend/fraud checks
+        # ✅ Spending limit & fraud check
         ok, msg = enforce_spending_limit(sender_wallet, total_deduct)
         if not ok:
             return jsonify({"msg": msg}), 403
@@ -235,7 +249,7 @@ def international_transfer():
             session.commit()
             return jsonify({"msg": "Transaction flagged", "reasons": reasons}), 403
 
-        # 4. Perform Transfer
+        # ✅ Perform transfer
         sender_wallet.balance -= total_deduct
         recipient_wallet.balance += converted_amount
 
@@ -258,9 +272,11 @@ def international_transfer():
         session.add_all([tx_out, tx_in])
         session.commit()
 
+        # ✅ Notifications
         send_mock_notification(sender.id, f"You sent {data.amount} {sender_wallet.currency} to {recipient.email}")
         send_mock_notification(recipient.id, f"You received {converted_amount} {recipient_wallet.currency} from {sender.email}")
 
+        # ✅ Success response
         return jsonify({
             "msg": "International transfer complete",
             "sent_amount": float(data.amount),
