@@ -1,4 +1,3 @@
-# app/utils/logger.py
 from ..models.audit_log import AuditLog
 from ..db.session import SessionLocal
 

@@ -16,8 +16,8 @@ class KYC(Base, SerializationMixin):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    status = Column(String, default="pending")  # pending / approved / rejected
-    reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # admin ID
+    status = Column(String, default="pending")  
+    reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)  
     reviewed_at = Column(DateTime, nullable=True)
     rejection_reason = Column(String, nullable=True)
 
@@ -28,7 +28,7 @@ class KYC(Base, SerializationMixin):
     )
     reviewer = relationship(
         "User",
-        back_populates="reviewed_docs",  # <- must match User.reviewed_docs
+        back_populates="reviewed_docs",  
         foreign_keys=[reviewed_by]
     )
 

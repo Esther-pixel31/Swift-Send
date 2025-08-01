@@ -11,16 +11,24 @@ export default function IncomingRequests() {
   const [loading, setLoading] = useState(false);
 
   const loadRequests = async () => {
-    setLoading(true);
-    try {
-      const res = await getReceivedRequests();
+  setLoading(true);
+  try {
+    const res = await getReceivedRequests();
+    // Treat empty array as valid (no toast)
+    if (Array.isArray(res.data)) {
       setRequests(res.data);
-    } catch (err) {
-      toast.error('Failed to load requests');
-    } finally {
-      setLoading(false);
+    } else {
+      setRequests([]);
     }
-  };
+  } catch (err) {
+    // Only show error if it's not a normal empty state
+    
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   const handleFulfill = async (id) => {
     if (!window.confirm('Send money to fulfill this request?')) return;

@@ -23,7 +23,7 @@ class Wallet(Base, SerializationMixin):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # ✅ Key fix: passive_deletes=True enables SQL-level cascade
+   
     user = relationship("User", back_populates="wallets", passive_deletes=True)
 
     def __repr__(self):

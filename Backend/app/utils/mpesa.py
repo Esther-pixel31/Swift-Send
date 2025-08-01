@@ -1,5 +1,3 @@
-# utils.py or helpers/utils.py
-
 import random
 import string
 import re

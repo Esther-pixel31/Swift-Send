@@ -8,7 +8,6 @@ from ..utils.auth import active_required
 
 user_bp = Blueprint('user', __name__)
 
-# 1. Get current user info
 @user_bp.route('/me', methods=['GET'])
 @jwt_required()
 def get_current_user():
@@ -31,7 +30,7 @@ def get_current_user():
             "phone_number": user.phone_number,
             "card_number": user.card_number,
             "card_expiry": user.card_expiry,
-            "card_cvc": decrypted_cvc,  # ✅ Use decrypted value
+            "card_cvc": decrypted_cvc, 
             "role": user.role,
             "is_verified": user.is_verified,
             "kyc_status": user.kyc_status,
@@ -40,7 +39,7 @@ def get_current_user():
     finally:
         session.close()
 
-# 2. Update user info
+
 @user_bp.route('/update', methods=['PUT'])
 @jwt_required()
 def update_user_info():
@@ -62,7 +61,6 @@ def update_user_info():
     finally:
         session.close()
 
-# 3. Change password
 @user_bp.route('/change-password', methods=['POST'])
 @jwt_required()
 def change_password():
@@ -86,7 +84,7 @@ def change_password():
     finally:
         session.close()
 
-# 4. Delete user account
+
 @user_bp.route('/delete', methods=['DELETE'])
 @jwt_required()
 def delete_account():

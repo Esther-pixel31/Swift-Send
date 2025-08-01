@@ -5,7 +5,7 @@ def enforce_spending_limit(wallet, amount):
     now = datetime.utcnow()
     amount = Decimal(amount)
 
-    # Reset logic
+    
     if not wallet.last_spending_reset or wallet.last_spending_reset.date() != now.date():
         wallet.daily_spent = Decimal("0.00")
 
@@ -14,7 +14,7 @@ def enforce_spending_limit(wallet, amount):
 
         wallet.last_spending_reset = now
 
-    # Ensure safe defaults
+    
     daily_spent = wallet.daily_spent or Decimal("0.00")
     monthly_spent = wallet.monthly_spent or Decimal("0.00")
 

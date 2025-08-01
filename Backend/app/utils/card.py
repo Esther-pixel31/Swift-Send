@@ -1,5 +1,3 @@
-# app/utils/card.py
-
 import random
 
 def generate_card_number():

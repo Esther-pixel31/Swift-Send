@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, Text
-from .base import Base, SerializationMixin # Already includes SerializationMixin
+from .base import Base, SerializationMixin 
 
 class FraudRule(Base, SerializationMixin):
     __tablename__ = "fraud_rules"

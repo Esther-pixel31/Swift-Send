@@ -58,15 +58,13 @@ def domestic_transfer():
         if sender_wallet.balance < data.amount:
             return jsonify({"msg": "Insufficient balance"}), 400
 
-        # Spending limit check
+        
         ok, msg = enforce_spending_limit(sender_wallet, data.amount)
         warnings = []
         if not ok:
             return jsonify({"msg": msg}), 403
         elif msg:
-            warnings.append(msg)
-
-        # Fraud detection
+            warnings.append(msg)    
         
         is_fraud, reasons = is_transaction_suspicious(sender, data.amount, session)
         if is_fraud:
@@ -80,7 +78,7 @@ def domestic_transfer():
                 "reasons": reasons
             }), 403
 
-        # Perform transfer
+       
         sender_wallet.balance -= data.amount
         recipient_wallet.balance += data.amount
 
@@ -126,18 +124,14 @@ def domestic_transfer():
 @jwt_required()
 @verified_user_required
 def schedule_transfer():
-    print("🚀 /api/transfer/schedule was hit!")
+    
     user_id = get_jwt_identity()
     data = request.get_json()
-
-    print("📥 Received schedule request:", data)
 
     session = SessionLocal()
     required_fields = ['beneficiary_id', 'amount', 'currency', 'scheduled_at']
     if not all(field in data for field in required_fields):
         return jsonify({'msg': 'Missing required fields'}), 400
-
-        print("📥 Received:", data)
 
     try:
         scheduled_at = parser.isoparse(data['scheduled_at'])
@@ -155,12 +149,9 @@ def schedule_transfer():
         session.add(st)
         session.commit()
 
-        print("✅ Saved ScheduledTransfer:", st)
-
         return jsonify({"msg": "Scheduled transfer created"}), 201
     except Exception as e:
-        session.rollback()
-        print("❌ Error saving scheduled transfer:", e)
+        session.rollback()     
         return jsonify({"msg": "Failed to schedule transfer", "error": str(e)}), 500
     finally:
         session.close()
@@ -201,39 +192,39 @@ def cancel_scheduled_transfer(transfer_id):
     finally:
         session.close()
 
-# routes/transfer.py
+
 @transfer_bp.route('/international', methods=['POST'])
 @jwt_required()
 @verified_user_required
 def international_transfer():
     session = SessionLocal()
     try:
-        # ✅ Get current user
+        
         user_id = get_jwt_identity()
         sender = session.query(User).filter_by(id=user_id).first()
         if not sender:
             return jsonify({"msg": "User not found"}), 404
 
-        # ✅ Check if user is active
+        
         try:
             check_user_active(sender)
         except InactiveUserError as e:
             return jsonify({"msg": str(e)}), 403
 
-        # ✅ Validate request data
+        
         try:
             data = TransferSchema(**request.get_json())
         except ValidationError as e:
             return jsonify({"msg": "Invalid input", "errors": e.errors()}), 400
 
-        # ✅ Get recipient user
+       
         recipient = session.query(User).filter_by(email=data.receiver_email).first()
         if not recipient:
             return jsonify({"msg": "Recipient not found"}), 404
         if recipient.id == sender.id:
             return jsonify({"msg": "Cannot transfer to yourself"}), 400
 
-        # ✅ Get wallets
+      
         sender_wallet = session.query(Wallet).filter_by(user_id=sender.id).first()
         recipient_wallet = session.query(Wallet).filter_by(user_id=recipient.id).first()
         if not sender_wallet or not recipient_wallet:
@@ -241,12 +232,11 @@ def international_transfer():
         if sender_wallet.currency != "KES" or recipient_wallet.currency != "KES":
             return jsonify({"msg": "Both wallets must be in KES for this operation"}), 400
 
-        # ✅ Get FX rate (KES ➝ USD)
         fx = session.query(FXRate).filter_by(base_currency="KES", target_currency="USD").first()
         if not fx or fx.rate == 0:
             return jsonify({"msg": "Exchange rate not found or invalid"}), 400
 
-        # ✅ Convert USD to KES
+        
         usd_amount = Decimal(str(data.amount)).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
         rate = Decimal(str(fx.rate)).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
         kes_equiv = (usd_amount * rate).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
@@ -256,7 +246,7 @@ def international_transfer():
         if sender_wallet.balance < total_deduct:
             return jsonify({"msg": "Insufficient balance"}), 400
 
-        # ✅ Spending & fraud checks
+       
         ok, msg = enforce_spending_limit(sender_wallet, total_deduct)
         if not ok:
             return jsonify({"msg": msg}), 403
@@ -268,7 +258,7 @@ def international_transfer():
             session.commit()
             return jsonify({"msg": "Transaction flagged", "reasons": reasons}), 403
 
-        # ✅ Perform transfer
+        
         sender_wallet.balance -= total_deduct
         recipient_wallet.balance += kes_equiv
 
@@ -292,7 +282,7 @@ def international_transfer():
         session.add_all([tx_out, tx_in])
         session.commit()
 
-        # ✅ Notifications
+        
         send_mock_notification(sender.id, f"You sent USD {usd_amount} (KES {kes_equiv}) to {recipient.email}")
         send_mock_notification(recipient.id, f"You received KES {kes_equiv} (USD {usd_amount}) from {sender.email}")
 
@@ -306,11 +296,11 @@ def international_transfer():
             "recipient_currency": recipient_wallet.currency
         }), 200
 
-    # ✅ Validate request data
+   
         try:
             data = TransferSchema(**request.get_json())
         except ValidationError as e:
-            print("🚫 Validation error in /international route:", e.errors())  # ← This logs the error
+            print("🚫 Validation error in /international route:", e.errors()) 
             return jsonify({"msg": "Invalid input", "errors": e.errors()}), 400
 
     finally:
@@ -362,7 +352,7 @@ def get_received_requests():
 
         result = []
         for r in requests:
-            data = r.serialize()  # ✅ Correct: serialize each PaymentRequest instance
+            data = r.serialize()  
             requester = session.query(User).get(r.requester_id)
             if requester:
                 data["requester_name"] = requester.name
@@ -389,7 +379,6 @@ def fulfill_payment_request(request_id):
         if payment_request.status != "pending":
             return jsonify({"msg": "Request already handled"}), 400
 
-        # Here you'd also do transfer logic: debit user, credit requester, create transaction, etc.
 
         payment_request.status = "accepted"
         session.commit()

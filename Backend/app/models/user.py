@@ -19,7 +19,7 @@ class User(Base, SerializationMixin):
     card_cvc = Column(String, nullable=True)
     is_admin = Column(Boolean, default=False)
 
-    #2FA and security features 
+    
     otp_secret = Column(String, nullable=True)
     otp_verified = Column(Boolean, default=False)
     biometric_enabled = Column(Boolean, default=False)

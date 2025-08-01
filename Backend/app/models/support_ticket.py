@@ -11,13 +11,11 @@ class SupportTicket(Base, SerializationMixin):
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     subject = Column(String(255), nullable=False)
     message = Column(Text, nullable=False)
-    status = Column(String(50), default="open")  # open, in_progress, closed
+    status = Column(String(50), default="open") 
     response = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="support_tickets")
 
-# And update user model:
-# in app/models/user.py
 

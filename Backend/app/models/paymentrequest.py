@@ -15,12 +15,9 @@ class PaymentRequest(Base, SerializationMixin):
     amount = Column(DECIMAL(precision=10, scale=2), nullable=False)
     currency = Column(String(3), nullable=False)
     note = Column(String(255))
-    status = Column(String(20), default="pending")  # pending, accepted, declined
+    status = Column(String(20), default="pending")  
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # models/payment_request.py
-
 
     requester = relationship("User", foreign_keys=[requester_id], backref="sent_requests")
     requestee = relationship("User", foreign_keys=[requestee_id], backref="received_requests")

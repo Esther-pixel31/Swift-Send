@@ -174,8 +174,7 @@ def get_all_users():
     finally:
         session.close()
 
- # make sure it's imported
-
+ 
 @admin_bp.route('/wallets', methods=['GET'])
 @jwt_required()
 @admin_required
@@ -223,8 +222,6 @@ def get_dashboard_metrics():
         }), 200
     finally:
         session.close()
-
-# In app/routes/admin.py
 
 
 @admin_bp.route('/fx-rates', methods=['GET'])
@@ -365,7 +362,7 @@ def update_wallet(wallet_id):
         if not wallet:
             return jsonify({"msg": "Wallet not found"}), 404
 
-        # Optional fields
+        
         wallet.balance = data.get("balance", wallet.balance)
         wallet.daily_limit = data.get("daily_limit", wallet.daily_limit)
         wallet.monthly_limit = data.get("monthly_limit", wallet.monthly_limit)

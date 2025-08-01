@@ -101,7 +101,7 @@ def withdraw():
         return jsonify({"msg": "Withdrawal successful"}), 200
     except Exception as e:
         session.rollback()
-        print("Withdraw error:", str(e))  # Add this line
+        print("Withdraw error:", str(e))  
         return jsonify({"msg": "Failed to withdraw", "error": str(e)}), 500
 
     finally:
@@ -139,7 +139,7 @@ def update_wallet_limits():
 
         wallet.last_spending_reset = datetime.utcnow()
 
-        # Log the limit update
+        
         txn = Transaction(
     user_id=user_id,
     transaction_type="limit-update",
@@ -167,7 +167,7 @@ def mock_deposit():
     data = request.get_json()
 
     amount = Decimal(str(data.get("amount", 0)))
-    method = data.get("method")  # "mpesa" or "card"
+    method = data.get("method")  
 
     if amount <= 0 or method not in ["mpesa", "card"]:
         return jsonify({"msg": "Invalid deposit request"}), 400
@@ -222,8 +222,8 @@ def mock_withdraw():
     data = request.get_json()
 
     amount = Decimal(str(data.get("amount", 0)))
-    method = data.get("method")  # 'mpesa' or 'card'
-    destination = data.get("destination")  # phone number or card number
+    method = data.get("method")  
+    destination = data.get("destination")  
 
     if amount <= 0 or not destination or method not in ["mpesa", "card"]:
         return jsonify({"msg": "Invalid withdrawal request"}), 400
@@ -234,7 +234,7 @@ def mock_withdraw():
         if not wallet or wallet.balance < amount:
             return jsonify({"msg": "Insufficient funds"}), 400
 
-        reference = generate_mpesa_code()  # mock code
+        reference = generate_mpesa_code()  
         wallet.balance -= amount
 
         txn = Transaction(
@@ -259,7 +259,6 @@ def mock_withdraw():
 
     except Exception as e:
         session.rollback()
-        print("Withdraw error:", e)
         return jsonify({"msg": "Withdrawal failed", "error": str(e)}), 500
     finally:
         session.close()

@@ -9,7 +9,6 @@ from ..utils.mpesa import allowed_file_extension
 import requests
 import mimetypes
 from urllib.parse import urlparse, unquote
-
 import os
 import uuid
 
@@ -102,8 +101,6 @@ def get_kyc_status():
 def serve_kyc_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
-
-
 @kyc_bp.route('/upload-from-url', methods=['POST'])
 @jwt_required()
 def upload_document_from_url():
@@ -114,38 +111,33 @@ def upload_document_from_url():
 
     if not document_url or not document_type or not document_number:
         return jsonify({'msg': 'document_url, document_type, and document_number are required'}), 400
-
-    # Convert Google Drive URL if applicable
+  
     document_url = convert_google_drive_link(document_url)
 
     try:
         response = requests.get(document_url, timeout=10)
         response.raise_for_status()
 
-        # Try to extract extension from URL
         parsed_url = urlparse(document_url)
         path = unquote(parsed_url.path)
         ext = os.path.splitext(path)[-1].lstrip('.').lower()
-
-        # Fallback to content-type if extension is missing or not allowed
+       
         if not ext or ext not in ALLOWED_EXTENSIONS:
             content_type = response.headers.get('Content-Type', '').lower()
             ext = mimetypes.guess_extension(content_type) or ''
             ext = ext.lstrip('.')
             if ext not in ALLOWED_EXTENSIONS:
                 return jsonify({'msg': f'Unsupported file type. Allowed: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
-
-        # Ensure filename is safe
+       
         base_name = os.path.basename(path) or f"document.{ext}"
         filename = secure_filename(base_name)
         unique_filename = f"{uuid.uuid4().hex}_{filename}"
         filepath = os.path.join(UPLOAD_FOLDER, unique_filename)
 
-        # Save file
+       
         with open(filepath, 'wb') as f:
             f.write(response.content)
-
-        # Save to DB
+      
         user_id = get_jwt_identity()
         session = SessionLocal()
         try:
@@ -163,8 +155,6 @@ def upload_document_from_url():
             return jsonify({'msg': 'Failed to save KYC document', 'error': str(e)}), 500
         finally:
             session.close()
-
         return jsonify({'msg': 'Document fetched from URL and saved successfully'}), 201
-
     except requests.exceptions.RequestException as e:
         return jsonify({'msg': 'Failed to download file from URL', 'error': str(e)}), 400

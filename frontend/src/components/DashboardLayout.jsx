@@ -173,24 +173,30 @@ export default function DashboardLayout() {
       </aside>
 
       {/* Mobile Sidebar */}
-      {isMobileMenuOpen && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-40 z-40"
-            onClick={toggleMobileMenu}
-          />
-          <aside className="fixed top-0 left-0 w-64 h-full bg-white shadow-xl flex flex-col justify-between p-6 z-50 animate-slide-in">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">Cashie Transfer</h2>
-              <button onClick={toggleMobileMenu}>
-                <X size={24} />
-              </button>
-            </div>
-            <nav className="space-y-4">{navLinks}</nav>
-            {sidebarFooter}
-          </aside>
-        </>
-      )}
+        {isMobileMenuOpen && (
+          <>
+            <div
+              className="fixed inset-0 bg-black bg-opacity-40 z-40"
+              onClick={toggleMobileMenu}
+            />
+            <aside className="fixed top-0 left-0 w-64 h-full bg-white shadow-xl z-50 animate-slide-in">
+              {/*  Scrollable inner container */}
+              <div className="flex flex-col justify-between h-full overflow-y-auto p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold">Cashie Transfer</h2>
+                  <button onClick={toggleMobileMenu}>
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <nav className="space-y-4">{navLinks}</nav>
+
+                {sidebarFooter}
+              </div>
+            </aside>
+          </>
+        )}
+
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">

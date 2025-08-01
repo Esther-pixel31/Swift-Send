@@ -7,7 +7,6 @@ from ..models.wallet import Wallet
 from ..models.transaction import Transaction
 from ..utils.mock_notify import send_mock_notification
 
-
 def run_scheduled_transfers():
     session = SessionLocal()
     now = datetime.utcnow()
@@ -23,7 +22,7 @@ def run_scheduled_transfers():
             total_available = wallet.balance + wallet.credit
 
             if wallet and total_available >= tx.amount:
-                # Deduct from balance first, then from credit if needed
+                
                 remaining = tx.amount
 
                 if wallet.balance >= remaining:
@@ -50,7 +49,7 @@ def run_scheduled_transfers():
                     f"Scheduled transfer of {tx.amount} {tx.currency} sent successfully."
                 )
 
-                # Handle recurrence
+                
                 if tx.recurrence == "daily":
                     tx.scheduled_at += timedelta(days=1)
                 elif tx.recurrence == "weekly":
@@ -58,7 +57,7 @@ def run_scheduled_transfers():
                 elif tx.recurrence == "monthly":
                     tx.scheduled_at += relativedelta(months=1)
                 else:
-                    tx.is_active = False  # one-time
+                    tx.is_active = False  
             else:
                 tx.status = "failed"
                 send_mock_notification(
@@ -76,8 +75,6 @@ def run_scheduled_transfers():
         session.rollback()
     finally:
         session.close()
-
-
 
 def start_scheduler():
     scheduler = BackgroundScheduler()
