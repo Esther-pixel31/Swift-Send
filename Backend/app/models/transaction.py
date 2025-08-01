@@ -17,7 +17,7 @@ class Transaction(Base, SerializationMixin):
     currency = Column(String(10), default="KES")
     exchange_rate = Column(Float, nullable=True)
     note = Column(String, nullable=True)
-    
+    reference = Column(String(100), nullable=True)
     scheduled_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

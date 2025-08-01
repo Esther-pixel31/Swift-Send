@@ -9,6 +9,7 @@ from datetime import datetime
 from ..utils.mock_notify import send_mock_notification
 from decimal import Decimal, InvalidOperation
 from ..models.transaction import Transaction
+from ..utils.mpesa import generate_mpesa_code
 
 
 wallet_bp = Blueprint('wallet', __name__)
@@ -159,4 +160,106 @@ def update_wallet_limits():
     finally:
         session.close()
 
+@wallet_bp.route('/mock-deposit', methods=['POST'])
+@jwt_required()
+def mock_deposit():
+    user_id = get_jwt_identity()
+    data = request.get_json()
 
+    amount = Decimal(str(data.get("amount", 0)))
+    method = data.get("method")  # "mpesa" or "card"
+
+    if amount <= 0 or method not in ["mpesa", "card"]:
+        return jsonify({"msg": "Invalid deposit request"}), 400
+
+    session = SessionLocal()
+    try:
+        wallet = session.query(Wallet).filter_by(user_id=user_id).first()
+        if not wallet:
+            return jsonify({"msg": "Wallet not found"}), 404
+
+        if method == "mpesa":
+            reference = generate_mpesa_code()
+            note = "Mock M-Pesa Deposit"
+        else:
+            reference = f"CARD-{uuid.uuid4().hex[:8]}"
+            note = "Mock Card Deposit"
+
+        wallet.balance += amount
+
+        txn = Transaction(
+            user_id=user_id,
+            transaction_type="deposit",
+            amount=amount,
+            note=note,
+            currency=wallet.currency,
+            status="completed",
+            reference=reference,
+            created_at=datetime.utcnow()
+        )
+
+        session.add(txn)
+        session.commit()
+
+        return jsonify({
+            "msg": "Deposit successful",
+            "method": method,
+            "reference": reference,
+            "new_balance": str(wallet.balance)
+        }), 200
+
+    except Exception as e:
+        session.rollback()
+        return jsonify({"msg": "Deposit failed", "error": str(e)}), 500
+    finally:
+        session.close()
+
+
+@wallet_bp.route('/mock-withdraw', methods=['POST'])
+@jwt_required()
+def mock_withdraw():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    amount = Decimal(str(data.get("amount", 0)))
+    method = data.get("method")  # 'mpesa' or 'card'
+    destination = data.get("destination")  # phone number or card number
+
+    if amount <= 0 or not destination or method not in ["mpesa", "card"]:
+        return jsonify({"msg": "Invalid withdrawal request"}), 400
+
+    session = SessionLocal()
+    try:
+        wallet = session.query(Wallet).filter_by(user_id=user_id).first()
+        if not wallet or wallet.balance < amount:
+            return jsonify({"msg": "Insufficient funds"}), 400
+
+        reference = generate_mpesa_code()  # mock code
+        wallet.balance -= amount
+
+        txn = Transaction(
+            user_id=user_id,
+            transaction_type="withdrawal",
+            amount=amount,
+            note=f"Mock {method.capitalize()} Withdrawal to {destination}",
+            currency=wallet.currency,
+            status="completed",
+            reference=reference,
+            created_at=datetime.utcnow()
+        )
+
+        session.add(txn)
+        session.commit()
+
+        return jsonify({
+            "msg": "Withdrawal successful",
+            "reference": reference,
+            "new_balance": str(wallet.balance)
+        }), 200
+
+    except Exception as e:
+        session.rollback()
+        print("Withdraw error:", e)
+        return jsonify({"msg": "Withdrawal failed", "error": str(e)}), 500
+    finally:
+        session.close()
