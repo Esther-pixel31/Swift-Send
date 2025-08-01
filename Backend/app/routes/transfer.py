@@ -318,6 +318,7 @@ def international_transfer():
 
 @transfer_bp.route("/request-money", methods=["POST"])
 @jwt_required()
+@verified_user_required
 def request_money():
     session = SessionLocal()
     try:
@@ -347,6 +348,7 @@ def request_money():
 
 @transfer_bp.route('/received-requests', methods=['GET'])
 @jwt_required()
+@verified_user_required
 def get_received_requests():
     user_id = get_jwt_identity()
     session = SessionLocal()
@@ -360,18 +362,21 @@ def get_received_requests():
 
         result = []
         for r in requests:
-            data = r.to_dict()
+            data = r.serialize()  # ✅ Correct: serialize each PaymentRequest instance
             requester = session.query(User).get(r.requester_id)
-            data["requester_name"] = requester.name
-            data["requester_email"] = requester.email
+            if requester:
+                data["requester_name"] = requester.name
+                data["requester_email"] = requester.email
             result.append(data)
 
         return jsonify(result), 200
     finally:
         session.close()
 
+
 @transfer_bp.route('/fulfill-request/<int:request_id>', methods=['POST'])
 @jwt_required()
+@verified_user_required
 def fulfill_payment_request(request_id):
     user_id = get_jwt_identity()
     session = SessionLocal()
@@ -397,6 +402,7 @@ def fulfill_payment_request(request_id):
 
 @transfer_bp.route('/decline-request/<int:request_id>', methods=['POST'])
 @jwt_required()
+@verified_user_required
 def decline_payment_request(request_id):
     user_id = get_jwt_identity()
     session = SessionLocal()

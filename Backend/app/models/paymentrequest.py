@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from decimal import Decimal
 from .base import Base, SerializationMixin
+from .user import User
 
 
 class PaymentRequest(Base, SerializationMixin):
@@ -17,3 +18,9 @@ class PaymentRequest(Base, SerializationMixin):
     status = Column(String(20), default="pending")  # pending, accepted, declined
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # models/payment_request.py
+
+
+    requester = relationship("User", foreign_keys=[requester_id], backref="sent_requests")
+    requestee = relationship("User", foreign_keys=[requestee_id], backref="received_requests")
