@@ -10,6 +10,7 @@ from .fraud_rule import FraudRule
 from .fraud_log import FraudLog
 from .kyc import KYC
 from .fx_rate import FXRate
+from .paymentrequest import PaymentRequest
 
 
 

@@ -93,7 +93,7 @@ export default function DashboardLayout() {
         <span>Transfer</span>
       </NavLink>
       <NavLink
-        to="/scheduled-transfers"
+        to="/request-money"
         className={({ isActive }) =>
           `flex items-center gap-3 px-4 py-2 rounded-md font-medium ${
             isActive
@@ -103,8 +103,20 @@ export default function DashboardLayout() {
         }
       >
         <FileText size={18} />
-        <span>Schedule </span>
+        <span>Request Money</span>
       </NavLink>
+      <NavLink
+        to="/incoming-requests"
+        className={({ isActive }) =>
+          `flex items-center gap-3 px-4 py-2 rounded-md font-medium ${
+            isActive ? 'bg-primary text-white' : 'text-textGray hover:bg-gray-100'
+          }`
+        }
+      >
+        <Inbox size={18} />
+        <span>Incoming Requests</span>
+      </NavLink>
+
       <NavLink
         to="/transactions"
         className={({ isActive }) =>

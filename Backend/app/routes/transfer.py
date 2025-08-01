@@ -17,6 +17,9 @@ from ..models.fx_rate import FXRate
 from decimal import Decimal, ROUND_DOWN
 from ..models.user import User
 from ..models.scheduled_transfer import ScheduledTransfer
+import datetime
+from ..models.paymentrequest import PaymentRequest
+from dateutil import parser
 
 transfer_bp = Blueprint('transfer', __name__)
 
@@ -123,16 +126,21 @@ def domestic_transfer():
 @jwt_required()
 @verified_user_required
 def schedule_transfer():
+    print("🚀 /api/transfer/schedule was hit!")
     user_id = get_jwt_identity()
     data = request.get_json()
+
+    print("📥 Received schedule request:", data)
+
     session = SessionLocal()
-    
     required_fields = ['beneficiary_id', 'amount', 'currency', 'scheduled_at']
     if not all(field in data for field in required_fields):
         return jsonify({'msg': 'Missing required fields'}), 400
 
+        print("📥 Received:", data)
+
     try:
-        scheduled_at = datetime.fromisoformat(data['scheduled_at'])
+        scheduled_at = parser.isoparse(data['scheduled_at'])
 
         st = ScheduledTransfer(
             user_id=user_id,
@@ -140,17 +148,23 @@ def schedule_transfer():
             amount=data['amount'],
             currency=data['currency'],
             scheduled_at=scheduled_at,
-            recurrence=data.get('recurrence'),  # Optional: daily, weekly, monthly
-            is_active=True
+            recurrence=data.get('recurrence'),
+            is_active=True,
+            status="scheduled"
         )
         session.add(st)
         session.commit()
+
+        print("✅ Saved ScheduledTransfer:", st)
+
         return jsonify({"msg": "Scheduled transfer created"}), 201
     except Exception as e:
         session.rollback()
+        print("❌ Error saving scheduled transfer:", e)
         return jsonify({"msg": "Failed to schedule transfer", "error": str(e)}), 500
     finally:
         session.close()
+
 
 @transfer_bp.route('/scheduled', methods=['GET'])
 @jwt_required()
@@ -159,8 +173,13 @@ def get_scheduled_transfers():
     session = SessionLocal()
     try:
         transfers = session.query(ScheduledTransfer)\
-            .filter_by(user_id=user_id)\
-            .order_by(ScheduledTransfer.scheduled_at.desc())\
+            .filter(
+                ScheduledTransfer.user_id == user_id,
+                ScheduledTransfer.is_active == True,
+                
+
+            )\
+            .order_by(ScheduledTransfer.scheduled_at.asc())\
             .all()
         return jsonify([tx.serialize() for tx in transfers]), 200
     finally:
@@ -287,9 +306,13 @@ def international_transfer():
             "recipient_currency": recipient_wallet.currency
         }), 200
 
-    except SQLAlchemyError as e:
-        session.rollback()
-        return jsonify({"msg": "Transfer failed", "error": str(e)}), 500
+    # ✅ Validate request data
+        try:
+            data = TransferSchema(**request.get_json())
+        except ValidationError as e:
+            print("🚫 Validation error in /international route:", e.errors())  # ← This logs the error
+            return jsonify({"msg": "Invalid input", "errors": e.errors()}), 400
+
     finally:
         session.close()
 
@@ -319,5 +342,78 @@ def request_money():
     except SQLAlchemyError as e:
         session.rollback()
         return jsonify({"msg": "Error", "error": str(e)}), 500
+    finally:
+        session.close()
+
+@transfer_bp.route('/received-requests', methods=['GET'])
+@jwt_required()
+def get_received_requests():
+    user_id = get_jwt_identity()
+    session = SessionLocal()
+    try:
+        requests = (
+            session.query(PaymentRequest)
+            .filter_by(requestee_id=user_id, status='pending')
+            .order_by(PaymentRequest.created_at.desc())
+            .all()
+        )
+
+        result = []
+        for r in requests:
+            data = r.to_dict()
+            requester = session.query(User).get(r.requester_id)
+            data["requester_name"] = requester.name
+            data["requester_email"] = requester.email
+            result.append(data)
+
+        return jsonify(result), 200
+    finally:
+        session.close()
+
+@transfer_bp.route('/fulfill-request/<int:request_id>', methods=['POST'])
+@jwt_required()
+def fulfill_payment_request(request_id):
+    user_id = get_jwt_identity()
+    session = SessionLocal()
+    try:
+        payment_request = session.query(PaymentRequest).get(request_id)
+
+        if not payment_request or payment_request.requestee_id != user_id:
+            return jsonify({"msg": "Not allowed"}), 403
+
+        if payment_request.status != "pending":
+            return jsonify({"msg": "Request already handled"}), 400
+
+        # Here you'd also do transfer logic: debit user, credit requester, create transaction, etc.
+
+        payment_request.status = "accepted"
+        session.commit()
+        return jsonify({"msg": "Request fulfilled"}), 200
+    except Exception as e:
+        session.rollback()
+        return jsonify({"msg": "Failed to fulfill request", "error": str(e)}), 500
+    finally:
+        session.close()
+
+@transfer_bp.route('/decline-request/<int:request_id>', methods=['POST'])
+@jwt_required()
+def decline_payment_request(request_id):
+    user_id = get_jwt_identity()
+    session = SessionLocal()
+    try:
+        payment_request = session.query(PaymentRequest).get(request_id)
+
+        if not payment_request or payment_request.requestee_id != user_id:
+            return jsonify({"msg": "Not allowed"}), 403
+
+        if payment_request.status != "pending":
+            return jsonify({"msg": "Already handled"}), 400
+
+        payment_request.status = "declined"
+        session.commit()
+        return jsonify({"msg": "Request declined"}), 200
+    except Exception as e:
+        session.rollback()
+        return jsonify({"msg": "Failed to decline request", "error": str(e)}), 500
     finally:
         session.close()

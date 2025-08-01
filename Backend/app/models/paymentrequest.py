@@ -1,4 +1,11 @@
-class PaymentRequest(Base):
+from sqlalchemy import Column, Integer, ForeignKey, String, DateTime, DECIMAL
+from sqlalchemy.orm import relationship
+from datetime import datetime
+from decimal import Decimal
+from .base import Base, SerializationMixin
+
+
+class PaymentRequest(Base, SerializationMixin):
     __tablename__ = "payment_requests"
 
     id = Column(Integer, primary_key=True)

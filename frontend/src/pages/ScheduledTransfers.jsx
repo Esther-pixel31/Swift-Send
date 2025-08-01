@@ -7,16 +7,29 @@ export default function ScheduledTransfers() {
   const [loading, setLoading] = useState(false);
 
   const loadScheduled = async () => {
-    setLoading(true);
-    try {
-      const res = await getScheduledTransfers();
-      setScheduled(res.data);
-    } catch {
-      toast.error('Failed to load scheduled transfers');
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    const res = await getScheduledTransfers();
+
+    // Ensure scheduled_at is a valid future date
+    const now = new Date();
+
+    const futureScheduled = (res.data || []).filter(
+      (tx) =>
+        tx.scheduled_at &&
+        new Date(tx.scheduled_at) > now &&
+        tx.status?.toLowerCase() === 'scheduled' || tx.status?.toLowerCase() === 'pending'
+
+    );
+
+    setScheduled(futureScheduled);
+  } catch {
+    toast.error('Failed to load scheduled transfers');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleCancel = async (id) => {
     if (!window.confirm('Cancel this scheduled transfer?')) return;
