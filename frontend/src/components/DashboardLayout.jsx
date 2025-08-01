@@ -93,6 +93,19 @@ export default function DashboardLayout() {
         <span>Transfer</span>
       </NavLink>
       <NavLink
+        to="/scheduled-transfers"
+        className={({ isActive }) =>
+          `flex items-center gap-3 px-4 py-2 rounded-md font-medium ${
+            isActive
+              ? 'bg-primary text-white'
+              : 'text-textGray hover:bg-gray-100'
+          }`
+        }
+      >
+        <FileText size={18} />
+        <span>Schedule </span>
+      </NavLink>
+      <NavLink
         to="/transactions"
         className={({ isActive }) =>
           `flex items-center gap-3 px-4 py-2 rounded-md font-medium ${

@@ -10,7 +10,9 @@ export default function Transfer() {
     receiver_email: '',
     amount: '',
     note: '',
-    currency: 'KES'
+    currency: 'KES',
+    scheduled_at: '',
+    recurrence: ''
   });
 
   const [fxRate, setFxRate] = useState(null);
@@ -81,24 +83,37 @@ export default function Transfer() {
 
     setLoading(true);
     try {
+      const payload = {
+        ...form,
+        amount: parseFloat(form.amount),
+        scheduled_at: form.scheduled_at ? new Date(form.scheduled_at).toISOString() : null,
+        beneficiary_id: recipient.id,
+      };
+
       if (isInternational) {
         const fx = await getFXRate(form.currency, recipient.currency);
         if (!fx || !fx.rate) throw new Error('FX rate missing');
 
-        const res = await sendInternationalTransfer({
-          receiver_email: form.receiver_email,
-          amount: parseFloat(form.amount)
-        });
+        const res = await sendInternationalTransfer(payload);
 
         toast.success(
-          `Sent ${form.amount} ${form.currency} → ${res.data.converted_amount} ${recipient.currency} @ rate ${res.data.fx_rate}`
+          form.scheduled_at
+            ? 'Scheduled international transfer created'
+            : `Sent ${form.amount} ${form.currency} → ${res.data.converted_amount} ${recipient.currency} @ rate ${res.data.fx_rate}`
         );
       } else {
-        await sendDomesticTransfer(form);
-        toast.success('Transfer successful');
+        await sendDomesticTransfer(payload);
+        toast.success(form.scheduled_at ? 'Scheduled transfer created' : 'Transfer successful');
       }
 
-      setForm({ receiver_email: '', amount: '', note: '', currency: 'KES' });
+      setForm({
+        receiver_email: '',
+        amount: '',
+        note: '',
+        currency: 'KES',
+        scheduled_at: '',
+        recurrence: ''
+      });
       setFxRate(null);
       setConvertedAmount(null);
       setFxFee(null);
@@ -168,6 +183,32 @@ export default function Transfer() {
               <option value="USD">USD</option>
             </select>
           </div>
+
+          {/* Scheduled Date */}
+          <div>
+            <label className="block mb-1 text-sm font-medium text-gray-600">Schedule Date</label>
+            <input
+              type="datetime-local"
+              className="input"
+              value={form.scheduled_at}
+              onChange={(e) => setForm({ ...form, scheduled_at: e.target.value })}
+            />
+          </div>
+
+          {/* Recurrence */}
+          <div>
+            <label className="block mb-1 text-sm font-medium text-gray-600">Recurrence</label>
+            <select
+              className="input"
+              value={form.recurrence}
+              onChange={(e) => setForm({ ...form, recurrence: e.target.value })}
+            >
+              <option value="">One-time</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
         </div>
 
         {/* FX Preview */}
@@ -182,7 +223,7 @@ export default function Transfer() {
         {/* Submit */}
         <div className="pt-2">
           <button onClick={handleSend} className="btn" disabled={loading}>
-            {loading ? 'Sending...' : 'Send'}
+            {loading ? 'Sending...' : form.scheduled_at ? 'Schedule Transfer' : 'Send Now'}
           </button>
         </div>
       </div>

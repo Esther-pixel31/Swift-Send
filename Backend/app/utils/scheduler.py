@@ -19,9 +19,19 @@ def run_scheduled_transfers():
 
         for tx in transfers:
             wallet = session.query(Wallet).filter_by(user_id=tx.user_id).first()
-            
-            if wallet and wallet.balance >= tx.amount:
-                wallet.balance -= tx.amount
+
+            total_available = wallet.balance + wallet.credit
+
+            if wallet and total_available >= tx.amount:
+                # Deduct from balance first, then from credit if needed
+                remaining = tx.amount
+
+                if wallet.balance >= remaining:
+                    wallet.balance -= remaining
+                else:
+                    remaining -= wallet.balance
+                    wallet.balance = 0
+                    wallet.credit -= remaining
 
                 txn = Transaction(
                     user_id=tx.user_id,
@@ -35,20 +45,26 @@ def run_scheduled_transfers():
                 session.add(txn)
 
                 tx.status = "processed"
-                send_mock_notification(tx.user_id, f"Scheduled transfer of {tx.amount} {tx.currency} sent successfully.")
+                send_mock_notification(
+                    tx.user_id,
+                    f"Scheduled transfer of {tx.amount} {tx.currency} sent successfully."
+                )
 
-                if tx.recurrence:
-                    if tx.recurrence == "daily":
-                        tx.scheduled_at += timedelta(days=1)
-                    elif tx.recurrence == "weekly":
-                        tx.scheduled_at += timedelta(weeks=1)
-                    elif tx.recurrence == "monthly":
-                        tx.scheduled_at += relativedelta(months=1)
+                # Handle recurrence
+                if tx.recurrence == "daily":
+                    tx.scheduled_at += timedelta(days=1)
+                elif tx.recurrence == "weekly":
+                    tx.scheduled_at += timedelta(weeks=1)
+                elif tx.recurrence == "monthly":
+                    tx.scheduled_at += relativedelta(months=1)
                 else:
-                    tx.is_active = False  # one-time, deactivate
+                    tx.is_active = False  # one-time
             else:
                 tx.status = "failed"
-                send_mock_notification(tx.user_id, f"Scheduled transfer of {tx.amount} {tx.currency} failed due to insufficient funds.")
+                send_mock_notification(
+                    tx.user_id,
+                    f"Scheduled transfer of {tx.amount} {tx.currency} failed due to insufficient funds."
+                )
 
             tx.last_attempt_at = now
             session.add(tx)
@@ -60,6 +76,7 @@ def run_scheduled_transfers():
         session.rollback()
     finally:
         session.close()
+
 
 
 def start_scheduler():

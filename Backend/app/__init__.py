@@ -63,7 +63,8 @@ def create_app(testing=False):  # Accept a testing parameter
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
     app.register_blueprint(fx_bp, url_prefix="/api")
 
-    if not testing:
+    if not testing and os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         start_scheduler()
+
 
     return app

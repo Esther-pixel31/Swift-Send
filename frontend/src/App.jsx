@@ -25,6 +25,7 @@ import Support from './pages/Support';
 import Profile from './pages/Profile';
 import EditProfile from "./pages/EditProfile";
 import ChangePassword from "./pages/ChangePassword";
+import ScheduledTransfers from './pages/ScheduledTransfers';
 
 // 🔐 Admin Pages
 import AdminLogin from './pages/Admin/AdminLogin';
@@ -73,6 +74,7 @@ export default function App() {
           <Route path="wallets" element={<AdminWallets />} />
           <Route path="fx-rates" element={<AdminFxRates />} />
           <Route path="audit-logs" element={<AdminAuditLogs />} />
+          
         </Route>
 
         {/* Authenticated User Routes */}
@@ -95,6 +97,7 @@ export default function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="edit-profile" element={<EditProfile />} />
           <Route path="change-password" element={<ChangePassword />} />
+          <Route path="scheduled-transfers" element={<ScheduledTransfers />} />
         </Route>
       </Routes>
 

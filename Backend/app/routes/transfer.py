@@ -14,9 +14,9 @@ from ..schemas import TransferSchema
 from pydantic import ValidationError
 from ..utils.mock_notify import send_mock_notification
 from ..models.fx_rate import FXRate
-from ..schema.transfer import TransferSchema
-
+from decimal import Decimal, ROUND_DOWN
 from ..models.user import User
+from ..models.scheduled_transfer import ScheduledTransfer
 
 transfer_bp = Blueprint('transfer', __name__)
 
@@ -201,7 +201,6 @@ def international_transfer():
         except InactiveUserError as e:
             return jsonify({"msg": str(e)}), 403
 
-
         # ✅ Validate request data
         try:
             data = TransferSchema(**request.get_json())
@@ -220,29 +219,30 @@ def international_transfer():
         recipient_wallet = session.query(Wallet).filter_by(user_id=recipient.id).first()
         if not sender_wallet or not recipient_wallet:
             return jsonify({"msg": "Wallet not found"}), 404
+        if sender_wallet.currency != "KES" or recipient_wallet.currency != "KES":
+            return jsonify({"msg": "Both wallets must be in KES for this operation"}), 400
 
-        # ✅ FX rate lookup
-        fx = session.query(FXRate).filter_by(
-            base_currency=sender_wallet.currency,
-            target_currency=recipient_wallet.currency
-        ).first()
-        if not fx:
-            return jsonify({"msg": "Exchange rate not found"}), 400
+        # ✅ Get FX rate (KES ➝ USD)
+        fx = session.query(FXRate).filter_by(base_currency="KES", target_currency="USD").first()
+        if not fx or fx.rate == 0:
+            return jsonify({"msg": "Exchange rate not found or invalid"}), 400
 
-        # ✅ Fee + total deduction
-        fee = float(data.amount) * (fx.fee_percent / 100)
-        total_deduct = float(data.amount) + fee
+        # ✅ Convert USD to KES
+        usd_amount = Decimal(str(data.amount)).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
+        rate = Decimal(str(fx.rate)).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
+        kes_equiv = (usd_amount * rate).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
+        fee = (kes_equiv * Decimal(fx.fee_percent) / 100).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
+        total_deduct = (kes_equiv + fee).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
+
         if sender_wallet.balance < total_deduct:
-            return jsonify({"msg": "Insufficient balance (with FX fee)"}), 400
+            return jsonify({"msg": "Insufficient balance"}), 400
 
-        converted_amount = float(data.amount) * fx.rate
-
-        # ✅ Spending limit & fraud check
+        # ✅ Spending & fraud checks
         ok, msg = enforce_spending_limit(sender_wallet, total_deduct)
         if not ok:
             return jsonify({"msg": msg}), 403
 
-        is_fraud, reasons = is_transaction_suspicious(sender, data.amount, session)
+        is_fraud, reasons = is_transaction_suspicious(sender, float(data.amount), session)
         if is_fraud:
             session.add(FraudLog(user_id=sender.id, reason="; ".join(reasons)))
             sender.is_active = False
@@ -251,43 +251,73 @@ def international_transfer():
 
         # ✅ Perform transfer
         sender_wallet.balance -= total_deduct
-        recipient_wallet.balance += converted_amount
+        recipient_wallet.balance += kes_equiv
 
         tx_out = Transaction(
             user_id=sender.id,
-            amount=data.amount,
-            currency=sender_wallet.currency,
+            amount=kes_equiv,
+            currency="KES",
             transaction_type="intl_transfer",
             status="success",
-            note=f"Sent to {recipient.email} in {recipient_wallet.currency}"
+            note=f"Sent USD {usd_amount} (KES {kes_equiv}) to {recipient.email}"
         )
         tx_in = Transaction(
             user_id=recipient.id,
-            amount=converted_amount,
-            currency=recipient_wallet.currency,
+            amount=kes_equiv,
+            currency="KES",
             transaction_type="intl_receive",
             status="success",
-            note=f"Received from {sender.email}"
+            note=f"Received USD {usd_amount} (KES {kes_equiv}) from {sender.email}"
         )
+
         session.add_all([tx_out, tx_in])
         session.commit()
 
         # ✅ Notifications
-        send_mock_notification(sender.id, f"You sent {data.amount} {sender_wallet.currency} to {recipient.email}")
-        send_mock_notification(recipient.id, f"You received {converted_amount} {recipient_wallet.currency} from {sender.email}")
+        send_mock_notification(sender.id, f"You sent USD {usd_amount} (KES {kes_equiv}) to {recipient.email}")
+        send_mock_notification(recipient.id, f"You received KES {kes_equiv} (USD {usd_amount}) from {sender.email}")
 
-        # ✅ Success response
         return jsonify({
             "msg": "International transfer complete",
-            "sent_amount": float(data.amount),
-            "converted_amount": converted_amount,
-            "fx_rate": fx.rate,
-            "fee_charged": fee,
+            "sent_amount_usd": float(usd_amount),
+            "converted_amount_kes": float(kes_equiv),
+            "fee_charged": float(fee),
+            "total_deducted_kes": float(total_deduct),
+            "fx_rate": float(rate),
             "recipient_currency": recipient_wallet.currency
         }), 200
 
     except SQLAlchemyError as e:
         session.rollback()
         return jsonify({"msg": "Transfer failed", "error": str(e)}), 500
+    finally:
+        session.close()
+
+@transfer_bp.route("/request-money", methods=["POST"])
+@jwt_required()
+def request_money():
+    session = SessionLocal()
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        recipient = session.query(User).filter_by(email=data.get("email")).first()
+
+        if not recipient or recipient.id == user_id:
+            return jsonify({"msg": "Invalid recipient"}), 400
+
+        new_request = PaymentRequest(
+            requester_id=user_id,
+            requestee_id=recipient.id,
+            amount=Decimal(str(data.get("amount"))),
+            currency=data.get("currency", "KES"),
+            note=data.get("note", "")
+        )
+        session.add(new_request)
+        session.commit()
+
+        return jsonify({"msg": "Payment request sent"}), 200
+    except SQLAlchemyError as e:
+        session.rollback()
+        return jsonify({"msg": "Error", "error": str(e)}), 500
     finally:
         session.close()
