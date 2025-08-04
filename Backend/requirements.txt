@@ -2,6 +2,7 @@ alembic==1.14.1
 annotated-types==0.7.0
 asttokens==3.0.0
 backcall==0.2.0
+beautifulsoup4==4.13.4
 blinker==1.8.2
 certifi==2025.6.15
 cffi==1.17.1
@@ -23,6 +24,7 @@ Flask-Login==0.6.3
 Flask-Migrate==4.1.0
 Flask-SQLAlchemy==3.1.1
 flask-talisman==1.1.0
+google==3.0.0
 greenlet==3.1.1
 gunicorn==23.0.0
 idna==3.10
@@ -65,6 +67,7 @@ requests-oauthlib==2.0.0
 rich==13.9.4
 shellingham==1.5.4
 six==1.17.0
+soupsieve==2.7
 SQLAlchemy==2.0.41
 SQLAlchemy-serializer==1.4.12
 stack-data==0.6.3
