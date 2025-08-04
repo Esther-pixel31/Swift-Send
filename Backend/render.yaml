@@ -20,4 +20,4 @@ services:
     autoDeploy: true
     repo: https://github.com/Esther-pixel31/Swift-Send.git
     branch: Esther
-    rootDir: .
+    rootDir: Backend
