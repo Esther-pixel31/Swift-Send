@@ -1,10 +1,15 @@
+# render.yaml
+version: "1"
 services:
   - type: web
-    name: flask-backend
+    name: Swift-Send
     runtime: python
-    pythonVersion: 3.10
+    repo: https://github.com/Esther-pixel31/Swift-Send
+    branch: Esther
     plan: free
-    region: frankfurt  # or choose your closest region
+    region: frankfurt
+    rootDir: .
+    pythonVersion: 3.10
 
     buildCommand: |
       pip install --upgrade pip setuptools wheel
@@ -12,12 +17,22 @@ services:
 
     startCommand: gunicorn 'run:create_app()'
 
+    autoDeployTrigger: commit
+
     envVars:
-      - key: FLASK_ENV
-        value: production
-
-
-    autoDeploy: true
-    repo: https://github.com/Esther-pixel31/Swift-Send.git
-    branch: Esther
-    rootDir: Backend
+      - key: DB_PORT
+        value: 5432
+      - key: DB_HOST
+        value: localhost
+      - key: DB_PASSWORD
+        value: 167519
+      - key: DB_USER
+        value: cashie_user
+      - key: DB_NAME
+        value: cashie_dev
+      - key: SECRET_KEY
+        value: supersecretflaskkey
+      - key: JWT_SECRET_KEY
+        value: supersecretflaskkey
+      - key: FERNET_SECRET_KEY
+        value: 6Sze1RpJ2lKlfRlylEaaDwv550LJa69PEbgG7t2INvo=
