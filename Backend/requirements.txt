@@ -53,9 +53,11 @@ markdown-it-py==3.0.0
 MarkupSafe==2.1.5
 matplotlib-inline==0.1.7
 mdurl==0.1.2
+numpy==1.24.4
 oauthlib==3.3.1
 ordered-set==4.1.0
 packaging==24.2
+pandas==2.0.3
 parso==0.8.4
 passlib==1.7.4
 pexpect==4.9.0
@@ -78,6 +80,7 @@ pyparsing==3.1.4
 pytest==8.3.5
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
+pytz==2025.2
 requests==2.32.4
 requests-oauthlib==2.0.0
 rich==13.9.4
@@ -92,6 +95,7 @@ tomli==2.2.1
 traitlets==5.14.3
 typer==0.16.0
 typing_extensions==4.13.2
+tzdata==2025.2
 uritemplate==4.1.1
 urllib3==2.2.3
 URLObject==2.4.3
