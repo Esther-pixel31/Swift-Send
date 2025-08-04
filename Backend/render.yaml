@@ -38,7 +38,7 @@ services:
         value: 6Sze1RpJ2lKlfRlylEaaDwv550LJa69PEbgG7t2INvo=
 
 buildCommand: |
-  python -m pip install --upgrade pip
-  python -m pip install --force-reinstall setuptools wheel
+  python -m pip install --upgrade pip setuptools wheel
+  pip install pandas==2.0.3 protobuf==4.23.3
   pip install -r requirements.txt
 

@@ -28,16 +28,8 @@ Flask-Login==0.6.3
 Flask-Migrate==4.1.0
 Flask-SQLAlchemy==3.1.1
 flask-talisman==1.1.0
-google==3.0.0
-google-api-core==2.25.1
-google-api-python-client==2.177.0
 google-auth==2.40.3
 google-auth-httplib2==0.2.0
-google-cloud-core==2.4.3
-google-cloud-storage==3.2.0
-google-crc32c==1.5.0
-google-resumable-media==2.7.2
-googleapis-common-protos==1.70.0
 greenlet==3.1.1
 gunicorn==23.0.0
 httplib2==0.22.0
