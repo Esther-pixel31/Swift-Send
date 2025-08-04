@@ -36,3 +36,9 @@ services:
         value: supersecretflaskkey
       - key: FERNET_SECRET_KEY
         value: 6Sze1RpJ2lKlfRlylEaaDwv550LJa69PEbgG7t2INvo=
+
+buildCommand: |
+  python -m pip install --upgrade pip
+  python -m pip install --force-reinstall setuptools wheel
+  pip install -r requirements.txt
+
