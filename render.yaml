@@ -1,19 +1,18 @@
-# render.yaml
 version: "1"
 services:
   - type: web
     name: Swift-Send
     runtime: python
+    pythonVersion: 3.10            # ✅ Must be exactly here!
     repo: https://github.com/Esther-pixel31/Swift-Send
     branch: Esther
     plan: free
     region: frankfurt
     rootDir: Backend
-    pythonVersion: 3.10
 
     buildCommand: |
       python -m pip install --upgrade pip setuptools wheel
-      pip install pandas==2.0.3 protobuf==4.23.3
+      pip install pandas==2.0.3 protobuf==5.29.5
       pip install -r requirements.txt
 
     startCommand: gunicorn 'run:create_app()'
