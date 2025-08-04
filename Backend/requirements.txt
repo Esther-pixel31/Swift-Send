@@ -103,3 +103,6 @@ wcwidth==0.2.13
 Werkzeug==3.0.6
 wrapt==1.17.2
 zipp==3.20.2
+setuptools>=68.0.0
+wheel>=0.42.0
+pip>=23.0.0
