@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: flask-backend
+    runtime: python
+    pythonVersion: 3.10
+    plan: free
+    region: frankfurt  # or choose your closest region
+
+    buildCommand: |
+      pip install --upgrade pip setuptools wheel
+      pip install -r requirements.txt
+
+    startCommand: gunicorn 'run:create_app()'
+
+    envVars:
+      - key: FLASK_ENV
+        value: production
+
+
+    autoDeploy: true
+    repo: https://github.com/Esther-pixel31/Swift-Send.git
+    branch: Esther
+    rootDir: .
